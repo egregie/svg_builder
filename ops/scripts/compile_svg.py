@@ -106,6 +106,9 @@ def qa_audit_svg(svg_content, design_tokens):
     # contain valid token definitions (e.g. --white: #FFFFFF) which should not trigger QA blocks.
     svg_content_audit = re.sub(r'<style>.*?</style>', '', svg_content, flags=re.DOTALL)
     
+    # Strip any design token references (e.g. var(--white), var(--dark)) to avoid false positives on token names
+    svg_content_audit = re.sub(r'var\(--[a-zA-Z0-9-]+\)', '', svg_content_audit)
+    
     # 2. Forbidden colors check (Zero Black Policy)
     # Match any hex colors or color names in the audited SVG text (outside style block)
     hex_colors_audit = re.findall(r'#[0-9a-fA-F]{3,6}', svg_content_audit)
