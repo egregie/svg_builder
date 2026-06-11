@@ -8,6 +8,13 @@
     --accent: #A0522D;
     --muted: #9E9E9E;
     --white: #FFFFFF;
+    --font-primary: Arimo, sans-serif;
+    --font-mono: JetBrains Mono, monospace;
+    --font-size-base: 16px;
+    --line-height: 1.5;
+    --stroke-thin: 0.5;
+    --stroke-default: 1.0;
+    --stroke-bold: 2.0;
   }
 </style>
   <rect width="1024" height="1024" fill="var(--bg)" />

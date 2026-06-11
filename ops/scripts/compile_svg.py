@@ -163,7 +163,14 @@ def compile_object_svg(passport_id, design_tokens):
     # Inject design tokens style block
     style = ET.SubElement(root, "style")
     style_content = "\n  :root {\n"
-    for k, v in design_tokens['colors'].items():
+    # Inject colors
+    for k, v in design_tokens.get('colors', {}).items():
+        style_content += f"    {k}: {v};\n"
+    # Inject typography
+    for k, v in design_tokens.get('typography', {}).items():
+        style_content += f"    {k}: {v};\n"
+    # Inject strokes
+    for k, v in design_tokens.get('strokes', {}).items():
         style_content += f"    {k}: {v};\n"
     style_content += "  }\n"
     style.text = style_content
