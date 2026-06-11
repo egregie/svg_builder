@@ -1,4 +1,4 @@
-# ТЕХНИЧЕСКОЕ ЗАДАНИЕ v2.3: OPTICAL DECONSTRUCTION & RECONSTRUCTION PIPELINE (Google Antigravity)
+# ТЕХНИЧЕСКОЕ ЗАДАНИЕ v2.5: OPTICAL DECONSTRUCTION & RECONSTRUCTION PIPELINE (Google Antigravity)
 
 **Версия:** 2.5 (ревизия: мердж dev → master, финальный релиз)  
 **Парадигма:** Foundation-First  
@@ -782,3 +782,130 @@ input/[image].png
 ---
 
 *Документ: `TZ_v2.5_Antigravity_Vectorizer.md` | v2.0 — Gemini (исходное ТЗ) | v2.1 — аналитическое дополнение | v2.2 — верификация Phase 0 | v2.3 — верификация Phase 2, `input/` | v2.4 — верификация Phase 3 | v2.5 — финальный релиз, мердж master | Дата: 2025-06*
+
+---
+
+## 24. ЭКСТРЕННАЯ ЗАДАЧА: Диагностика и устранение пустых SVG `[ДОПОЛНЕНО v2.5]`
+
+### Симптом `[ФАКТ: верифицировано визуально]`
+
+Все сгенерированные SVG (COMP-001–COMP-005 видны на скриншоте) содержат корректный `<style>` блок с дизайн-токенами и правильный `viewBox`, но **не содержат геометрии**. COMP-001.svg рендерится как белый прямоугольник цвета `--bg: #F8F6F4`. COMP-005.svg в `quarantine/` не рендерится вообще (серый экран — VS Code не может распознать контент).
+
+Входные файлы: `logo_ym_proskin_002.png` — `logo_ym_proskin_006.png` (реальные PNG логотипов, не тестовые заглушки).
+
+### Гипотезы причин (по убыванию вероятности)
+
+| # | Гипотеза | Проверяется |
+|---|----------|-------------|
+| H-1 | `vtracer_bridge.py` возвращает пустую строку или `None` — path-данные не генерируются | `print()` вывод A03 до сборки |
+| H-2 | `compile_svg.py` стрипает `fill` и удаляет элементы целиком при отсутствии совпадения с токеном | Просмотр staging/*.svg до QA |
+| H-3 | `deconstruct.py` неверно классифицировал все слои → паспорта содержат невалидные координаты bounding box | Просмотр `04_passports/*.md` |
+| H-4 | `starvector_inference.py` фоллбек возвращает валидный XML, но с пустым `d=""` в `<path>` | `grep -r 'd=""' 05_output_svg/` |
+
+### Диагностический план — выполнить последовательно
+
+**Шаг 1. Проверить staging/ до QA.**
+
+```bash
+# Есть ли path-данные в staging-файлах ДО финальной сборки?
+grep -c "<path" 05_output_svg/staging/*.svg 2>/dev/null || echo "staging пуст или не существует"
+```
+
+Если staging пуст — проблема в A03/A04 (H-1, H-4).
+Если staging содержит paths, но корень пуст — проблема в compile_svg.py (H-2).
+
+**Шаг 2. Изолированный запуск A03 на одном файле.**
+
+```bash
+python - << 'EOF'
+import sys
+sys.path.insert(0, 'ops/scripts')
+from vtracer_bridge import run_vtracer_layer
+
+# Взять первый паспорт из 04_passports/
+import os, json, glob
+passports = glob.glob('04_passports/*.json') or glob.glob('03_knowledge_graph/*.json')
+print("Найденные паспорта:", passports[:3])
+
+# Попытка прямого вызова VTracer на одном из PNG
+import vtracer
+result = vtracer.convert_image_to_svg_py(
+    'input/logo_ym_proskin_002.png',
+    colormode='binary',
+    hierarchical='stacked',
+    mode='spline',
+    filter_speckle=4,
+    color_precision=6,
+    layer_difference=16,
+    corner_threshold=60,
+    length_threshold=4.0,
+    max_iterations=10,
+    splice_threshold=45,
+    path_precision=3
+)
+print("VTracer result length:", len(result))
+print("Contains <path>:", "<path" in result)
+print("First 500 chars:", result[:500])
+EOF
+```
+
+**Шаг 3. Просмотр одного паспорта.**
+
+```bash
+# Проверить, что в паспорте есть реальные координаты bounding_box
+cat 04_passports/COMP-004.md 2>/dev/null || ls 04_passports/
+```
+
+**Шаг 4. Grep на пустые path в выходных файлах.**
+
+```bash
+grep -n 'd=""' 05_output_svg/COMP-001.svg 05_output_svg/COMP-004.svg 2>/dev/null
+grep -c "<path" 05_output_svg/COMP-001.svg 05_output_svg/COMP-004.svg 2>/dev/null
+```
+
+**Шаг 5. Просмотр compile_svg.py — логика стриппинга цветов.**
+
+Найти и показать функцию, которая заменяет fill/stroke на CSS-переменные. Ключевой вопрос: что происходит с элементом, если его fill не совпал ни с одним токеном? Удаляется ли элемент целиком или только атрибут?
+
+### Ожидаемый результат диагностики
+
+По итогам шагов 1–5 определить точный шаг пайплайна, на котором теряется геометрия, и прислать:
+
+1. Вывод `grep -c "<path"` для staging/ и корня `05_output_svg/`.
+2. Первые 20 строк проблемного SVG (`head -20 05_output_svg/COMP-001.svg`).
+3. Результат изолированного запуска VTracer (шаг 2) — длина строки и наличие `<path>`.
+4. Содержимое функции стриппинга цветов из `compile_svg.py`.
+
+### Вероятное исправление (после подтверждения H-1 или H-2)
+
+**Если H-1 (VTracer возвращает пустоту на PNG логотипов):**
+PNG могут содержать прозрачный фон или необычный цветовой режим. Добавить в `vtracer_bridge.py` перед вызовом:
+```python
+from PIL import Image
+img = Image.open(input_path).convert('RGB')  # принудительно RGB без альфа
+img.save(sanitized_path)
+# затем запускать VTracer на sanitized_path
+```
+
+**Если H-2 (стриппинг цветов удаляет элементы):**
+Изменить логику: при отсутствии совпадения с токеном — сохранять элемент с дефолтным токеном (`fill="var(--dark)"`), а не удалять.
+
+```python
+# БЫЛО (вероятный баг):
+if matched_token:
+    element.set('fill', f'var({matched_token})')
+else:
+    parent.remove(element)  # ← удаляет геометрию
+
+# ДОЛЖНО БЫТЬ:
+token = matched_token or '--dark'
+element.set('fill', f'var({token})')
+```
+
+**Если H-4 (StarVector фоллбек возвращает `d=""`):**
+Добавить проверку перед добавлением path в SVG:
+```python
+path_d = element.get('d', '')
+if not path_d or path_d.strip() == '':
+    continue  # пропустить пустой path, не добавлять в SVG
+```
