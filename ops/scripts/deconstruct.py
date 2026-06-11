@@ -224,35 +224,54 @@ def main():
     print("Starting A01: Deconstructor script...")
     design_tokens = load_design_tokens()
     
-    input_dirs = [
-        '01_input_raster/high_contrast',
-        '01_input_raster/complex_gradients'
-    ]
+    input_dir = 'input'
+    if not os.path.exists(input_dir):
+        print(f"Input directory '{input_dir}' does not exist. Creating it...")
+        os.makedirs(input_dir, exist_ok=True)
+        return
+        
+    import shutil
     
-    for input_dir in input_dirs:
-        if not os.path.exists(input_dir):
-            continue
-        for file in os.listdir(input_dir):
-            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                img_path = os.path.join(input_dir, file)
-                print(f"Processing: {img_path}")
-                try:
-                    raw_data, duration = deconstruct_image(img_path, design_tokens)
-                    
-                    # Output path
-                    basename = os.path.splitext(file)[0]
-                    out_path = f"02_processing/{basename}_raw.json"
-                    
-                    with open(out_path, 'w', encoding='utf-8') as f:
-                        json.dump(raw_data, f, indent=2, ensure_ascii=False)
+    for file in os.listdir(input_dir):
+        if file.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            img_path = os.path.join(input_dir, file)
+            print(f"Processing: {img_path}")
+            try:
+                raw_data, duration = deconstruct_image(img_path, design_tokens)
+                
+                # Determine target routing folder based on engine
+                layer2_engine = None
+                for layer in raw_data.get('layers', []):
+                    if layer.get('layer_index') == 2:
+                        layer2_engine = layer.get('engine', '')
+                        break
                         
-                    log_agent_trace(img_path, out_path, "Success", duration)
-                    print(f"[OK] Raw deconstruction saved to {out_path} ({duration:.1f}ms)")
-                except Exception as e:
-                    import traceback
-                    err_msg = str(e) + "\n" + traceback.format_exc()
-                    log_agent_trace(img_path, "", "Failed", 0, err_msg)
-                    print(f"[FAIL] Error processing {img_path}: {e}")
+                if layer2_engine and "VTracer" in layer2_engine:
+                    target_dir = '01_input_raster/high_contrast'
+                else:
+                    target_dir = '01_input_raster/complex_gradients'
+                    
+                os.makedirs(target_dir, exist_ok=True)
+                dest_path = os.path.join(target_dir, file)
+                
+                # Copy raw image to the routed folder
+                shutil.copy2(img_path, dest_path)
+                print(f"[ROUTE] Copied source file to {dest_path}")
+                
+                # Output path for raw json
+                basename = os.path.splitext(file)[0]
+                out_path = f"02_processing/{basename}_raw.json"
+                
+                with open(out_path, 'w', encoding='utf-8') as f:
+                    json.dump(raw_data, f, indent=2, ensure_ascii=False)
+                    
+                log_agent_trace(img_path, out_path, "Success", duration)
+                print(f"[OK] Raw deconstruction saved to {out_path} ({duration:.1f}ms)")
+            except Exception as e:
+                import traceback
+                err_msg = str(e) + "\n" + traceback.format_exc()
+                log_agent_trace(img_path, "", "Failed", 0, err_msg)
+                print(f"[FAIL] Error processing {img_path}: {e}")
 
 if __name__ == "__main__":
     main()

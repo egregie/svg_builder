@@ -22,3 +22,9 @@ ops/logs/*
 
 05_output_svg/quarantine/*
 !05_output_svg/quarantine/.gitkeep
+
+# Input folder binary files
+input/*.png
+input/*.jpg
+input/*.jpeg
+input/*.webp
