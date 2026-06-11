@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "entity_types": [
+    "RasterSource",
+    "ActiveLayer",
+    "ColorToken",
+    "GeometricPrimitive",
+    "BezierCurve",
+    "MarkdownPassport",
+    "SVGOutput",
+    "ValidationGate"
+  ],
+  "relationship_types": [
+    "is_a",
+    "belongs_to",
+    "part_of",
+    "deconstructed_into",
+    "parameterizes",
+    "compiled_by",
+    "validated_by",
+    "supports"
+  ],
+  "reconstruction_tiers": {
+    "Tier_A_Algorithmic": "VTracer — для высококонтрастных ребер, контуров, текста и чертежей",
+    "Tier_B_Neural": "StarVector — для градиентов, сложных художественных образов и семантических форм",
+    "Tier_C_Context": "Зашумленные исходники, требующие предварительной фильтрации (OpenCV)"
+  }
+}

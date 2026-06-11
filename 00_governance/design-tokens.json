@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "locked": true,
+  "comment": "Zero Black Policy enforced. #000 / #000000 запрещены. Изменения только через PR.",
+  "colors": {
+    "--dark": "#2C3440",
+    "--bg": "#F8F6F4",
+    "--bg-alt": "#EDEAE7",
+    "--herbal": "#6D8470",
+    "--accent": "#A0522D",
+    "--muted": "#9E9E9E",
+    "--white": "#FFFFFF"
+  },
+  "typography": {
+    "--font-primary": "Arimo, sans-serif",
+    "--font-mono": "JetBrains Mono, monospace",
+    "--font-size-base": "16px",
+    "--line-height": "1.5"
+  },
+  "strokes": {
+    "--stroke-thin": "0.5",
+    "--stroke-default": "1.0",
+    "--stroke-bold": "2.0"
+  },
+  "spacing_scale": [0, 4, 8, 16, 24, 32, 48, 64],
+  "forbidden": ["#000", "#000000", "#fff", "#ffffff", "black", "white"]
+}

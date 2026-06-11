@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+venv/
+.venv/
+.ipynb_checkpoints/
+
+# Project temporary processing and logs
+02_processing/*
+!02_processing/.gitkeep
+
+ops/logs/*
+!ops/logs/.gitkeep
+
+05_output_svg/staging/*
+!05_output_svg/staging/.gitkeep
+
+05_output_svg/quarantine/*
+!05_output_svg/quarantine/.gitkeep
