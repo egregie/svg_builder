@@ -60,6 +60,40 @@ def run_layer_generation(passport_id, layer_index, engine, output_path):
     print(f"[OK] Layer generated: {output_path}")
     return True, None
 
+def parse_hex_to_rgb(hex_str):
+    hex_str = hex_str.lstrip('#')
+    if len(hex_str) == 3:
+        hex_str = ''.join([c*2 for c in hex_str])
+    if len(hex_str) == 6:
+        return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+    return (0, 0, 0)
+
+def get_closest_color_token(hex_color, design_tokens):
+    if not hex_color or not hex_color.startswith('#'):
+        return None
+    rgb = parse_hex_to_rgb(hex_color)
+    
+    closest_token = None
+    min_dist = float('inf')
+    for token, hex_val in design_tokens.get('colors', {}).items():
+        token_rgb = parse_hex_to_rgb(hex_val)
+        dist = sum((a - b)**2 for a, b in zip(rgb, token_rgb))
+        if dist < min_dist:
+            min_dist = dist
+            closest_token = token
+    return closest_token
+
+def get_element_fill(elem):
+    fill = elem.get('fill')
+    if fill:
+        return fill
+    style = elem.get('style')
+    if style:
+        match = re.search(r'fill:\s*(#[0-9a-fA-F]{3,6})', style)
+        if match:
+            return match.group(1)
+    return None
+
 def clean_element(elem):
     # Remove namespaces and style/fill attributes to prevent leaks
     tag = elem.tag.split('}')[-1]
@@ -77,16 +111,23 @@ def clean_element(elem):
         cleaned.append(clean_element(child))
     return cleaned
 
-def extract_layer_shapes(layer_svg_path):
+def extract_layer_shapes(layer_svg_path, target_color_token, design_tokens):
     try:
         tree = ET.parse(layer_svg_path)
         root = tree.getroot()
         
         shapes = []
-        for child in root:
-            tag = child.tag.split('}')[-1]
-            if tag in ['path', 'rect', 'polygon', 'circle', 'g']:
-                shapes.append(clean_element(child))
+        for elem in root.iter():
+            tag = elem.tag.split('}')[-1]
+            if tag in ['path', 'rect', 'polygon', 'circle']:
+                # Filter by color
+                fill = get_element_fill(elem)
+                if fill:
+                    closest_token = get_closest_color_token(fill, design_tokens)
+                    if closest_token and closest_token != target_color_token:
+                        print(f"  [FILTER] Discarding element {tag} with fill {fill} (mapped to {closest_token}, target is {target_color_token})")
+                        continue
+                shapes.append(clean_element(elem))
         return shapes
     except Exception as e:
         print(f"[ERROR] Failed to parse layer shapes from {layer_svg_path}: {e}")
@@ -189,7 +230,7 @@ def compile_object_svg(passport_id, design_tokens):
             ET.SubElement(root, "rect", width=str(width), height=str(height), fill=f"var({color_token})")
         else:
             # Parse layer shapes, clean them, and wrap in a group
-            shapes = extract_layer_shapes(filepath)
+            shapes = extract_layer_shapes(filepath, color_token, design_tokens)
             if shapes:
                 group = ET.SubElement(root, "g", fill=f"var({color_token})")
                 for s in shapes:
