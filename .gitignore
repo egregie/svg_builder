@@ -14,6 +14,8 @@ venv/
 
 ops/logs/*
 !ops/logs/.gitkeep
+!ops/logs/qa_failures.jsonl
+!ops/logs/validation_errors.jsonl
 
 05_output_svg/staging/*
 !05_output_svg/staging/.gitkeep

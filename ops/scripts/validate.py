@@ -1,0 +1,209 @@
+import os
+import sys
+import json
+import time
+import datetime
+import jsonschema
+
+# Ensure we can run it from project root
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+def load_schema():
+    schema_path = '00_governance/schemas/passport_schema_v1.json'
+    if not os.path.exists(schema_path):
+        raise FileNotFoundError(f"Passport schema not found at {schema_path}")
+    with open(schema_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def get_existing_passport_id(source_file):
+    kg_dir = '03_knowledge_graph'
+    if not os.path.exists(kg_dir):
+        return None
+    for f in os.listdir(kg_dir):
+        if f.startswith("COMP-") and f.endswith(".json"):
+            filepath = os.path.join(kg_dir, f)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as jsf:
+                    data = json.load(jsf)
+                    if data.get('source_file') == source_file:
+                        return data.get('passport_id')
+            except Exception:
+                pass
+    return None
+
+def get_next_passport_id():
+    kg_dir = '03_knowledge_graph'
+    if not os.path.exists(kg_dir):
+        return "COMP-001"
+    existing_ids = []
+    for f in os.listdir(kg_dir):
+        if f.startswith("COMP-") and f.endswith(".json"):
+            try:
+                num = int(f.split("-")[1].split(".")[0])
+                existing_ids.append(num)
+            except ValueError:
+                pass
+    if not existing_ids:
+        return "COMP-001"
+    next_num = max(existing_ids) + 1
+    return f"COMP-{next_num:03d}"
+
+def log_agent_trace(passport_id, status, duration_ms, error=None):
+    trace_path = 'ops/logs/agent_trace.jsonl'
+    log_entry = {
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "agent_id": "A02",
+        "skill_id": "ontology-normalize",
+        "input_artifact": f"02_processing/{passport_id}_raw.json" if passport_id else "raw_log",
+        "output_artifact": f"03_knowledge_graph/{passport_id}.json" if status == "Success" else "",
+        "status": status,
+        "duration_ms": int(duration_ms),
+        "warnings": [],
+        "error": error
+    }
+    with open(trace_path, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
+def log_validation_error(passport_id, file_name, errors):
+    error_path = 'ops/logs/validation_errors.jsonl'
+    log_entry = {
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "passport_id": passport_id,
+        "file_name": file_name,
+        "errors": errors
+    }
+    with open(error_path, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
+def generate_markdown_passport(data):
+    md = f"# ТЕХНИЧЕСКИЙ ПАСПОРТ ОБЪЕКТА: {data['passport_id']}\n\n"
+    md += "## 1. МЕТАДАННЫЕ ИСХОДНИКА\n"
+    md += f"- **Файл:** {data['source_file']}\n"
+    md += f"- **Разрешение:** {data['resolution']['width_px']}x{data['resolution']['height_px']} px\n"
+    
+    comp_map = {"Low": "Низкая", "Medium": "Средняя", "High": "Высокая"}
+    complexity_ru = comp_map.get(data['complexity'], data['complexity'])
+    md += f"- **Сложность сцены:** {complexity_ru}\n"
+    md += f"- **Провенанс:** {data.get('provenance', 'Локальный диск / Тестовый ассет')}\n\n"
+    
+    md += "## 2. СЕМАНТИЧЕСКАЯ ДЕКОНСТРУКЦИЯ (СЛОИ)\n"
+    md += "*Слои в порядке наложения от заднего плана к переднему.*\n\n"
+    
+    for layer in data['layers']:
+        idx = layer['layer_index']
+        geom_map = {
+            "BoundingRect": "Сплошной прямоугольник (Bounding Box)",
+            "CompoundPath": "Замкнутый составной путь (Compound Path)",
+            "SimplePath": "Простой путь (Simple Path)",
+            "BezierCurve": "Кривая Безье (Bezier Curve)",
+            "TextLayer": "Текстовый слой (Text Layer)",
+            "GradientMesh": "Градиентная сетка (Gradient Mesh)",
+            "ClipMask": "Маска обрезки (Clip Mask)"
+        }
+        geom_type_ru = geom_map.get(layer['geometry_type'], layer['geometry_type'])
+        
+        name = "Фоновая подложка" if idx == 1 else "Центральный контур"
+        if idx > 2:
+            name = f"Дополнительный элемент {idx-2}"
+            
+        md += f"### Слой {idx}: {name}\n"
+        md += f"- **Тип геометрии:** {geom_type_ru}\n"
+        
+        if 'bounding_box' in layer:
+            bbox = [int(x) for x in layer['bounding_box']]
+            md += f"- **Координаты границ:** {bbox}\n"
+            
+        if 'anchor_points_limit' in layer:
+            md += f"- **Правило атомарности:** ≤ {layer['anchor_points_limit']} опорных точек на кривую\n"
+            
+        md += f"- **Выбранный токен цвета:** `{layer['color_token']}`\n"
+        
+        engine_str = layer['engine']
+        if 'vtracer_params' in layer:
+            vp = layer['vtracer_params']
+            engine_str += f" (`corner_threshold={int(vp.get('corner_threshold', 60))}`, `length_threshold={int(vp.get('length_threshold', 4))}`)"
+        md += f"- **Целевой движок:** {engine_str}\n\n"
+        
+    md += "## 3. СЛУЖЕБНЫЕ МЕТКИ АВТОМАТИЗАЦИИ\n"
+    meta = data.get('automation_meta', {})
+    status_map = {"Pending": "Ожидает", "InProgress": "В процессе", "Verified": "Верифицировано", "Failed": "Ошибка"}
+    status_ru = status_map.get(meta.get('deconstruction_status', 'Verified'), 'Верифицировано')
+    md += f"- **Статус деконструкции:** {status_ru}\n"
+    md += f"- **Целевой путь экспорта:** {meta.get('export_path', '')}\n"
+    md += f"- **Ссылки на граф:** entity_id: {meta.get('entity_id', '')}, source_ref: {meta.get('source_ref', '')}\n"
+    
+    return md
+
+def main():
+    print("Starting A02: Validator & Normalizer script...")
+    
+    try:
+        schema = load_schema()
+    except Exception as e:
+        print(f"[FAIL] Schema load error: {e}")
+        return
+        
+    proc_dir = '02_processing'
+    if not os.path.exists(proc_dir):
+        print(f"Directory {proc_dir} does not exist.")
+        return
+        
+    for file in os.listdir(proc_dir):
+        if file.endswith('_raw.json'):
+            raw_path = os.path.join(proc_dir, file)
+            start_time = time.time()
+            
+            try:
+                with open(raw_path, 'r', encoding='utf-8') as f:
+                    raw_data = json.load(f)
+            except Exception as e:
+                print(f"[FAIL] Failed to read {raw_path}: {e}")
+                continue
+                
+            source_file = raw_data.get('source_file', file)
+            
+            # 1. Determine or assign COMP ID
+            passport_id = get_existing_passport_id(source_file)
+            if not passport_id:
+                passport_id = get_next_passport_id()
+                
+            # 2. Add required fields for schema validation
+            raw_data['passport_id'] = passport_id
+            
+            # Setup automation_meta
+            comp_num = passport_id.split('-')[1]
+            raw_data['automation_meta'] = {
+                "deconstruction_status": "Verified",
+                "export_path": f"/05_output_svg/res_comp_{comp_num}.svg",
+                "entity_id": f"logo_primitive_{comp_num}",
+                "source_ref": f"SRC-{int(comp_num) + 20:04d}"
+            }
+            
+            # 3. Validate against JSON schema
+            validator = jsonschema.Draft7Validator(schema)
+            errors = sorted(validator.iter_errors(raw_data), key=lambda e: e.path)
+            
+            duration_ms = (time.time() - start_time) * 1000
+            
+            if errors:
+                err_messages = [f"{'/'.join(map(str, e.path))}: {e.message}" for e in errors]
+                log_validation_error(passport_id, file, err_messages)
+                log_agent_trace(passport_id, "Failed", duration_ms, "; ".join(err_messages))
+                print(f"[FAIL] Validation failed for {file}. Errors logged to ops/logs/validation_errors.jsonl")
+            else:
+                # 4. Save normalized JSON index
+                kg_path = f"03_knowledge_graph/{passport_id}.json"
+                with open(kg_path, 'w', encoding='utf-8') as f:
+                    json.dump(raw_data, f, indent=2, ensure_ascii=False)
+                    
+                # 5. Generate and save Technical Passport Markdown
+                passport_path = f"04_passports/{passport_id}.md"
+                md_content = generate_markdown_passport(raw_data)
+                with open(passport_path, 'w', encoding='utf-8') as f:
+                    f.write(md_content)
+                    
+                log_agent_trace(passport_id, "Success", duration_ms)
+                print(f"[OK] Verified and normaled: {passport_id} -> {passport_path} ({duration_ms:.1f}ms)")
+
+if __name__ == "__main__":
+    main()
