@@ -1,3 +1,7 @@
 {"timestamp": "2026-06-11T03:51:21.608446Z", "passport_id": "COMP-001", "errors": ["Forbidden color code found: #FFFFFF", "Forbidden color name found: white"]}
 {"timestamp": "2026-06-11T03:51:37.995643Z", "passport_id": "COMP-002", "errors": ["Forbidden color code found: #FFFFFF", "Forbidden color name found: white"]}
 {"timestamp": "2026-06-11T03:52:17.693147Z", "passport_id": "COMP-003", "errors": ["Forbidden color code found: #FFFFFF", "Forbidden color name found: white"]}
+{"timestamp": "2026-06-11T11:55:41.811578Z", "passport_id": "COMP-002", "errors": ["Forbidden color name found: white"]}
+{"timestamp": "2026-06-11T11:55:57.018465Z", "passport_id": "COMP-003", "errors": ["Forbidden color name found: white"]}
+{"timestamp": "2026-06-11T11:56:12.164304Z", "passport_id": "COMP-004", "errors": ["Forbidden color name found: white"]}
+{"timestamp": "2026-06-11T11:56:26.478396Z", "passport_id": "COMP-005", "errors": ["Forbidden color name found: white"]}
