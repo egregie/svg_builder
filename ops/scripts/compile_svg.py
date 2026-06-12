@@ -245,7 +245,24 @@ def qa_audit_svg(svg_content, design_tokens):
     if hex_colors_audit:
         errors.append(f"Raw hex color codes found outside the <style> block: {', '.join(hex_colors_audit)}")
                 
-    return errors
+def get_svg_viewbox(filepath):
+    try:
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+        viewbox = root.get('viewBox')
+        if viewbox:
+            parts = [float(x) for x in re.split(r'[\s,]+', viewbox.strip()) if x]
+            if len(parts) == 4:
+                return parts[0], parts[1], parts[2], parts[3]
+        width = root.get('width')
+        height = root.get('height')
+        if width and height:
+            w_val = float(re.sub(r'[^\d.]', '', width))
+            h_val = float(re.sub(r'[^\d.]', '', height))
+            return 0.0, 0.0, w_val, h_val
+    except Exception as e:
+        print(f"[WARN] Failed to parse SVG viewBox from {filepath}: {e}")
+    return 0.0, 0.0, None, None
 
 def compile_object_svg(passport_id, design_tokens):
     start_time = time.time()
@@ -268,7 +285,11 @@ def compile_object_svg(passport_id, design_tokens):
         engine = layer['engine']
         layer_svg = f"05_output_svg/staging/{passport_id}_layer_{layer_idx}.svg"
         
-        ok, err = run_layer_generation(passport_id, layer_idx, engine, layer_svg)
+        if os.path.exists(layer_svg):
+            print(f"Layer {layer_idx} already exists at {layer_svg}. Skipping generation (using cached).")
+            ok, err = True, None
+        else:
+            ok, err = run_layer_generation(passport_id, layer_idx, engine, layer_svg)
         if not ok:
             log_agent_trace(passport_id, "Failed", 0, f"Layer {layer_idx} generation failed: {err}")
             return False
@@ -310,7 +331,19 @@ def compile_object_svg(passport_id, design_tokens):
             shapes = extract_layer_shapes(filepath, color_token, design_tokens)
             if not shapes:
                 raise ValueError(f"Foreground layer {layer_idx} has no shapes extracted (empty layer).")
-            group = ET.SubElement(root, "g", fill=f"var({color_token})")
+                
+            # Determine scaling and translation offsets
+            x_min, y_min, source_w, source_h = get_svg_viewbox(filepath)
+            scale_attrib = {}
+            if source_w and source_h:
+                sx = width / source_w
+                sy = height / source_h
+                if x_min != 0.0 or y_min != 0.0:
+                    scale_attrib["transform"] = f"scale({sx:.6f}, {sy:.6f}) translate({-x_min:.6f}, {-y_min:.6f})"
+                elif abs(source_w - width) > 1e-2 or abs(source_h - height) > 1e-2:
+                    scale_attrib["transform"] = f"scale({sx:.6f}, {sy:.6f})"
+                
+            group = ET.SubElement(root, "g", fill=f"var({color_token})", **scale_attrib)
             for s in shapes:
                 group.append(s)
                     
