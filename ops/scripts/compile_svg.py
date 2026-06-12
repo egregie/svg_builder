@@ -83,55 +83,132 @@ def get_closest_color_token(hex_color, design_tokens):
             closest_token = token
     return closest_token
 
-def get_element_fill(elem):
-    fill = elem.get('fill')
-    if fill:
-        return fill
-    style = elem.get('style')
-    if style:
-        match = re.search(r'fill:\s*(#[0-9a-fA-F]{3,6})', style)
-        if match:
-            return match.group(1)
+def parse_style_str(style_str):
+    props = {}
+    if not style_str:
+        return props
+    for item in style_str.split(';'):
+        if ':' in item:
+            k, v = item.split(':', 1)
+            props[k.strip().lower()] = v.strip()
+    return props
+
+def get_inherited_attribute(elem, attr_name, parent_map):
+    curr = elem
+    while curr is not None:
+        val = curr.get(attr_name)
+        if val:
+            return val
+        style = curr.get('style')
+        if style:
+            props = parse_style_str(style)
+            if attr_name in props:
+                return props[attr_name]
+        curr = parent_map.get(curr)
     return None
 
-def clean_element(elem):
-    # Remove namespaces and style/fill attributes to prevent leaks
+def get_element_fill(elem, parent_map):
+    val = get_inherited_attribute(elem, 'fill', parent_map)
+    if val == 'none':
+        return None
+    return val
+
+def is_inside_defs(elem, parent_map):
+    curr = elem
+    while curr in parent_map:
+        curr = parent_map[curr]
+        tag = curr.tag.split('}')[-1]
+        if tag in ['defs', 'clipPath', 'style']:
+            return True
+    return False
+
+def is_inside_text(elem, parent_map):
+    curr = elem
+    while curr in parent_map:
+        curr = parent_map[curr]
+        tag = curr.tag.split('}')[-1]
+        if tag == 'text':
+            return True
+    return False
+
+def clean_element(elem, design_tokens):
     tag = elem.tag.split('}')[-1]
     attrib = {}
     
-    # Keep only geometrical and structural attributes
-    allowed_attribs = ['d', 'x', 'y', 'width', 'height', 'points', 'cx', 'cy', 'r', 'transform']
+    style_props = {}
+    if 'style' in elem.attrib:
+        style_props = parse_style_str(elem.attrib['style'])
+        
+    combined_attrib = {}
     for k, v in elem.attrib.items():
         k_clean = k.split('}')[-1]
-        if k_clean in allowed_attribs:
-            attrib[k_clean] = v
+        if k_clean != 'style':
+            combined_attrib[k_clean] = v
             
+    for k, v in style_props.items():
+        combined_attrib[k] = v
+        
+    allowed_attribs = [
+        'd', 'x', 'y', 'width', 'height', 'points', 'cx', 'cy', 'r', 'rx', 'ry', 
+        'x1', 'y1', 'x2', 'y2', 'transform', 
+        'font-family', 'font-size', 'text-anchor', 'font-weight', 'dx', 'dy', 'rotate',
+        'stroke-width', 'stroke-miterlimit', 'letter-spacing'
+    ]
+    
+    for k, v in combined_attrib.items():
+        if k in allowed_attribs:
+            attrib[k] = v
+        elif k == 'fill':
+            if v == 'none':
+                attrib['fill'] = 'none'
+            elif v.startswith('#'):
+                token = get_closest_color_token(v, design_tokens)
+                if token:
+                    attrib['fill'] = f"var({token})"
+            else:
+                attrib['fill'] = v
+        elif k == 'stroke':
+            if v == 'none':
+                attrib['stroke'] = 'none'
+            elif v.startswith('#'):
+                token = get_closest_color_token(v, design_tokens)
+                if token:
+                    attrib['stroke'] = f"var({token})"
+            else:
+                attrib['stroke'] = v
+                
     cleaned = ET.Element(tag, **attrib)
+    if elem.text:
+        cleaned.text = elem.text
+    if elem.tail:
+        cleaned.tail = elem.tail
+        
     for child in elem:
-        cleaned.append(clean_element(child))
+        cleaned.append(clean_element(child, design_tokens))
     return cleaned
 
 def extract_layer_shapes(layer_svg_path, target_color_token, design_tokens):
-    try:
-        tree = ET.parse(layer_svg_path)
-        root = tree.getroot()
-        
-        shapes = []
-        for elem in root.iter():
-            tag = elem.tag.split('}')[-1]
-            if tag in ['path', 'rect', 'polygon', 'circle']:
-                # Filter by color
-                fill = get_element_fill(elem)
-                if fill:
-                    closest_token = get_closest_color_token(fill, design_tokens)
-                    if closest_token and closest_token != target_color_token:
-                        print(f"  [FILTER] Discarding element {tag} with fill {fill} (mapped to {closest_token}, target is {target_color_token})")
-                        continue
-                shapes.append(clean_element(elem))
-        return shapes
-    except Exception as e:
-        print(f"[ERROR] Failed to parse layer shapes from {layer_svg_path}: {e}")
-        return []
+    tree = ET.parse(layer_svg_path)
+    root = tree.getroot()
+    
+    parent_map = {c: p for p in root.iter() for c in p}
+    shapes = []
+    allowed_tags = ['path', 'rect', 'polygon', 'circle', 'ellipse', 'polyline', 'line', 'text', 'tspan']
+    
+    for elem in root.iter():
+        tag = elem.tag.split('}')[-1]
+        if tag in allowed_tags:
+            if is_inside_defs(elem, parent_map) or is_inside_text(elem, parent_map):
+                continue
+                
+            fill = get_element_fill(elem, parent_map)
+            if fill:
+                closest_token = get_closest_color_token(fill, design_tokens)
+                if closest_token and closest_token != target_color_token:
+                    print(f"  [FILTER] Discarding element {tag} with fill {fill} (mapped to {closest_token}, target is {target_color_token})")
+                    continue
+            shapes.append(clean_element(elem, design_tokens))
+    return shapes
 
 def qa_audit_svg(svg_content, design_tokens):
     errors = []
@@ -168,7 +245,24 @@ def qa_audit_svg(svg_content, design_tokens):
     if hex_colors_audit:
         errors.append(f"Raw hex color codes found outside the <style> block: {', '.join(hex_colors_audit)}")
                 
-    return errors
+def get_svg_viewbox(filepath):
+    try:
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+        viewbox = root.get('viewBox')
+        if viewbox:
+            parts = [float(x) for x in re.split(r'[\s,]+', viewbox.strip()) if x]
+            if len(parts) == 4:
+                return parts[0], parts[1], parts[2], parts[3]
+        width = root.get('width')
+        height = root.get('height')
+        if width and height:
+            w_val = float(re.sub(r'[^\d.]', '', width))
+            h_val = float(re.sub(r'[^\d.]', '', height))
+            return 0.0, 0.0, w_val, h_val
+    except Exception as e:
+        print(f"[WARN] Failed to parse SVG viewBox from {filepath}: {e}")
+    return 0.0, 0.0, None, None
 
 def compile_object_svg(passport_id, design_tokens):
     start_time = time.time()
@@ -191,7 +285,11 @@ def compile_object_svg(passport_id, design_tokens):
         engine = layer['engine']
         layer_svg = f"05_output_svg/staging/{passport_id}_layer_{layer_idx}.svg"
         
-        ok, err = run_layer_generation(passport_id, layer_idx, engine, layer_svg)
+        if os.path.exists(layer_svg):
+            print(f"Layer {layer_idx} already exists at {layer_svg}. Skipping generation (using cached).")
+            ok, err = True, None
+        else:
+            ok, err = run_layer_generation(passport_id, layer_idx, engine, layer_svg)
         if not ok:
             log_agent_trace(passport_id, "Failed", 0, f"Layer {layer_idx} generation failed: {err}")
             return False
@@ -231,10 +329,23 @@ def compile_object_svg(passport_id, design_tokens):
         else:
             # Parse layer shapes, clean them, and wrap in a group
             shapes = extract_layer_shapes(filepath, color_token, design_tokens)
-            if shapes:
-                group = ET.SubElement(root, "g", fill=f"var({color_token})")
-                for s in shapes:
-                    group.append(s)
+            if not shapes:
+                raise ValueError(f"Foreground layer {layer_idx} has no shapes extracted (empty layer).")
+                
+            # Determine scaling and translation offsets
+            x_min, y_min, source_w, source_h = get_svg_viewbox(filepath)
+            scale_attrib = {}
+            if source_w and source_h:
+                sx = width / source_w
+                sy = height / source_h
+                if x_min != 0.0 or y_min != 0.0:
+                    scale_attrib["transform"] = f"scale({sx:.6f}, {sy:.6f}) translate({-x_min:.6f}, {-y_min:.6f})"
+                elif abs(source_w - width) > 1e-2 or abs(source_h - height) > 1e-2:
+                    scale_attrib["transform"] = f"scale({sx:.6f}, {sy:.6f})"
+                
+            group = ET.SubElement(root, "g", fill=f"var({color_token})", **scale_attrib)
+            for s in shapes:
+                group.append(s)
                     
     # Serialize to string
     # We want to format the XML nicely
@@ -289,8 +400,15 @@ def main():
             passport_id = os.path.splitext(file)[0]
             print(f"\n--- Compiling {passport_id} ---")
             total_count += 1
-            if compile_object_svg(passport_id, design_tokens):
-                success_count += 1
+            try:
+                if compile_object_svg(passport_id, design_tokens):
+                    success_count += 1
+            except Exception as e:
+                import traceback
+                err_msg = f"Compilation failed: {e}\n{traceback.format_exc()}"
+                print(f"[FAIL] Error compiling {passport_id}: {e}")
+                log_qa_failure(passport_id, [f"Compilation error: {e}"])
+                log_agent_trace(passport_id, "Failed", 0, err_msg)
                 
     print(f"\n--- Compilation Summary ---")
     print(f"Total compiled: {total_count}")
