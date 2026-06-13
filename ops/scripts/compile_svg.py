@@ -6,9 +6,12 @@ import datetime
 import subprocess
 import xml.etree.ElementTree as ET
 import re
+import glob
 
 # Ensure we can run it from project root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+# Allow importing sibling scripts (hifi_vectorize)
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 def load_design_tokens():
     tokens_path = '00_governance/design-tokens.json'
@@ -17,11 +20,11 @@ def load_design_tokens():
     with open(tokens_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def log_agent_trace(passport_id, status, duration_ms, error=None):
+def log_agent_trace(passport_id, status, duration_ms, error=None, agent_id="A05", metrics=None):
     trace_path = 'ops/logs/agent_trace.jsonl'
     log_entry = {
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-        "agent_id": "A05",
+        "agent_id": agent_id,
         "skill_id": "svg-qa-gate",
         "input_artifact": f"05_output_svg/staging/{passport_id}_compiled.svg",
         "output_artifact": f"05_output_svg/{passport_id}.svg" if status == "Success" else f"05_output_svg/quarantine/{passport_id}.svg",
@@ -30,6 +33,8 @@ def log_agent_trace(passport_id, status, duration_ms, error=None):
         "warnings": [],
         "error": error
     }
+    if metrics:
+        log_entry["metrics"] = metrics
     with open(trace_path, 'a', encoding='utf-8') as f:
         f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 
@@ -244,7 +249,124 @@ def qa_audit_svg(svg_content, design_tokens):
     # Also verify that no raw hex color codes are used outside the <style> block
     if hex_colors_audit:
         errors.append(f"Raw hex color codes found outside the <style> block: {', '.join(hex_colors_audit)}")
-                
+
+    return errors
+
+def normalize_monochrome(svg_content):
+    """Forces the monochrome-black standard (TZ v3.1 RULE 2): every fill/stroke
+    colour becomes #000000 (except 'none'); any stray hex collapses to black."""
+    s = re.sub(r'(fill|stroke)="(?!none")[^"]*"', r'\1="#000000"', svg_content)
+    s = re.sub(r'#[0-9a-fA-F]{3,6}', '#000000', s)
+    return s
+
+
+def validate_monochrome(svg_content):
+    """Release validation per TZ v3.1 RULE 1-5. Returns list of violations."""
+    errors = []
+    try:
+        ET.fromstring(svg_content)
+    except Exception as e:
+        return [f"Invalid XML syntax: {e}"]
+
+    # RULE 1/4: no background rectangle / opaque canvas layer
+    if re.search(r'<rect\b', svg_content):
+        errors.append("RULE1/4: background <rect> present (must be transparent)")
+
+    # RULE 3/5: no gradients, filters, raster images, embedded bitmap data
+    for token, label in [('data:image', 'embedded raster (base64)'),
+                         ('<image', 'raster <image> element'),
+                         ('linearGradient', 'linear gradient'),
+                         ('radialGradient', 'radial gradient'),
+                         ('<filter', 'filter')]:
+        if token in svg_content:
+            errors.append(f"RULE3/5: {label} present (must be pure vector)")
+
+    # RULE 2: only #000000 / black (and 'none')
+    colors = set(re.findall(r'(?:fill|stroke)="([^"]+)"', svg_content))
+    bad = [c for c in colors if c not in ('#000000', 'none')]
+    if bad:
+        errors.append(f"RULE2: non-black fills/strokes {sorted(bad)}")
+    strays = {h.lower() for h in re.findall(r'#[0-9a-fA-F]{3,6}', svg_content)
+              if h.lower() != '#000000'}
+    if strays:
+        errors.append(f"RULE2: stray non-black hex {sorted(strays)}")
+    return errors
+
+
+def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
+    """A08 Monochrome Standard (TZ v3.1/3.2): dispatch by render_mode, then enforce
+    black-only / transparent / pure-vector release standard. Output named per
+    CR v3.3 (svg_<stem>.svg)."""
+    import hifi_vectorize
+    import sketch_vectorize
+
+    start_time = time.time()
+    index_path = f"03_knowledge_graph/{passport_id}.json"
+    if not os.path.exists(index_path):
+        raise FileNotFoundError(f"Passport index not found: {index_path}")
+    with open(index_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    image_path = find_source_image(data['source_file'])
+    if not image_path:
+        raise FileNotFoundError(f"Source image not found for: {data['source_file']}")
+
+    render_mode = data.get('render_mode', 'STANDARD_VECTOR')
+    detail = data.get('vector_detail_level', 'HIGH')
+    input_type = data.get('input_type', 'ILLUSTRATION')
+    if output_name is None:
+        output_name = make_output_name(data['source_file'], set())
+    annotate_passport(passport_id, data['source_file'], output_name)
+    stem = os.path.splitext(output_name)[0]
+
+    if render_mode == 'SKETCH_VECTOR':
+        result = sketch_vectorize.vectorize_sketch(image_path, detail)
+    else:
+        result = hifi_vectorize.vectorize_monochrome(image_path, detail)
+
+    svg_content = normalize_monochrome(result['svg'])
+    metrics = {
+        "input_type": input_type,
+        "render_mode": render_mode,
+        "detail": detail,
+        "ssim": round(result['ssim_ref'], 4),
+        "source_filename": os.path.basename(data['source_file']),
+        "output_filename": output_name,
+        "vtracer_params": result.get('params'),
+    }
+
+    os.makedirs("05_output_svg/staging", exist_ok=True)
+    with open(f"05_output_svg/staging/{stem}_compiled.svg", 'w',
+              encoding='utf-8') as f:
+        f.write(svg_content)
+
+    errors = validate_monochrome(svg_content)
+    if not re.match(r'^svg_.+\.svg$', output_name):           # CR v3.3 §8.1
+        errors.append(f"Output filename violates naming standard: {output_name}")
+    if not result.get('gate_passed', True):
+        errors.append(f"Perceptual gate failed: SSIM={result['ssim_ref']:.4f}")
+
+    duration_ms = (time.time() - start_time) * 1000
+    if errors:
+        log_qa_failure(passport_id, errors)
+        log_agent_trace(passport_id, "Failed", duration_ms, "; ".join(errors),
+                        agent_id="A08", metrics=metrics)
+        quarantine_path = f"05_output_svg/quarantine/{output_name}"
+        os.makedirs(os.path.dirname(quarantine_path), exist_ok=True)
+        with open(quarantine_path, 'w', encoding='utf-8') as f:
+            f.write(svg_content)
+        print(f"[FAIL] {passport_id} ({render_mode}) -> quarantine/{output_name}: {errors}")
+        return False
+
+    final_path = f"05_output_svg/{output_name}"
+    with open(final_path, 'w', encoding='utf-8') as f:
+        f.write(svg_content)
+    log_agent_trace(passport_id, "Success", duration_ms, agent_id="A08", metrics=metrics)
+    print(f"[OK] {passport_id} [{input_type}/{render_mode}/{detail}]: "
+          f"SSIM={result['ssim_ref']:.4f} -> {final_path} ({duration_ms:.0f}ms)")
+    return True
+
+
 def get_svg_viewbox(filepath):
     try:
         tree = ET.parse(filepath)
@@ -383,33 +505,177 @@ def compile_object_svg(passport_id, design_tokens):
         print(f"[OK] QA Audit passed for {passport_id}. Composite SVG saved to {final_path} ({duration_ms:.1f}ms)")
         return True
 
+def find_source_image(source_file):
+    search_dirs = [
+        '01_input_raster/high_contrast',
+        '01_input_raster/complex_gradients',
+        'input',
+    ]
+    for d in search_dirs:
+        p = os.path.join(d, source_file)
+        if os.path.exists(p):
+            return p
+    return None
+
+# ---- CR v3.3: output naming standard + clean rebuild ------------------------
+
+def natural_key(s):
+    """Natural sort key: '02' < '10', so source ordering is preserved."""
+    return [int(t) if t.isdigit() else t.lower()
+            for t in re.split(r'(\d+)', s)]
+
+def make_output_name(source_file, used):
+    """svg_<stem>.svg with collision suffix _NN (CR v3.3 §4-5)."""
+    stem = os.path.splitext(os.path.basename(source_file))[0]
+    name = f"svg_{stem}.svg"
+    if name in used:
+        i = 1
+        while f"svg_{stem}_{i:02d}.svg" in used:
+            i += 1
+        name = f"svg_{stem}_{i:02d}.svg"
+    used.add(name)
+    return name
+
+def clean_outputs():
+    """Full clean rebuild (CR v3.3 §1): remove every previously generated SVG
+    from the release root, staging and quarantine. Sources / passports / graph
+    / logs are left untouched."""
+    removed = 0
+    for pat in ('05_output_svg/*.svg', '05_output_svg/staging/*.svg',
+                '05_output_svg/quarantine/*.svg'):
+        for f in glob.glob(pat):
+            os.remove(f)
+            removed += 1
+    print(f"[CLEAN] Removed {removed} old SVG file(s) before full rebuild.")
+
+def annotate_passport(passport_id, source_file, output_name):
+    """Persist source/output filename mapping into the passport (CR v3.3 §7)."""
+    path = f"03_knowledge_graph/{passport_id}.json"
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        d['source_filename'] = os.path.basename(source_file)
+        d['output_filename'] = output_name
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(d, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"[WARN] Could not annotate passport {passport_id}: {e}")
+
+def compile_object_svg_hifi(passport_id, design_tokens):
+    """A06 HiFi path (TZ v3.0): deterministic vectorization with perceptual QA."""
+    import hifi_vectorize
+
+    start_time = time.time()
+
+    index_path = f"03_knowledge_graph/{passport_id}.json"
+    if not os.path.exists(index_path):
+        raise FileNotFoundError(f"Passport index not found: {index_path}")
+    with open(index_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    image_path = find_source_image(data['source_file'])
+    if not image_path:
+        raise FileNotFoundError(f"Source image not found for: {data['source_file']}")
+
+    result = hifi_vectorize.vectorize(image_path, design_tokens)
+    svg_content = result['svg']
+    metrics = {
+        "ssim_reference": round(result['ssim_ref'], 4),
+        "ssim_original": round(result['ssim_orig'], 4),
+        "clusters": result['k'],
+        "vtracer_params": result['params'],
+    }
+
+    staging_output = f"05_output_svg/staging/{passport_id}_compiled.svg"
+    with open(staging_output, 'w', encoding='utf-8') as f:
+        f.write(svg_content)
+
+    errors = qa_audit_svg(svg_content, design_tokens)
+    if not result['gate_passed']:
+        errors.append(
+            f"Perceptual gate failed: SSIM(reference)={result['ssim_ref']:.4f} "
+            f"< {hifi_vectorize.SSIM_RELEASE_GATE}")
+
+    duration_ms = (time.time() - start_time) * 1000
+    if errors:
+        log_qa_failure(passport_id, errors)
+        log_agent_trace(passport_id, "Failed", duration_ms, "; ".join(errors),
+                        agent_id="A06", metrics=metrics)
+        quarantine_path = f"05_output_svg/quarantine/{passport_id}.svg"
+        os.makedirs(os.path.dirname(quarantine_path), exist_ok=True)
+        with open(quarantine_path, 'w', encoding='utf-8') as f:
+            f.write(svg_content)
+        print(f"[FAIL] QA failed for {passport_id}: {errors}")
+        return False
+
+    final_path = f"05_output_svg/{passport_id}.svg"
+    with open(final_path, 'w', encoding='utf-8') as f:
+        f.write(svg_content)
+    log_agent_trace(passport_id, "Success", duration_ms, agent_id="A06", metrics=metrics)
+    print(f"[OK] {passport_id}: SSIM(ref)={result['ssim_ref']:.4f}, "
+          f"SSIM(orig)={result['ssim_orig']:.4f} -> {final_path} ({duration_ms:.0f}ms)")
+    return True
+
 def main():
-    print("Starting A05: SVG Compiler & QA Auditor script...")
+    # Render strategy: default = v3.1 Monochrome Standard (black on transparent).
+    #   --color  -> v3.0 HiFi colour pipeline (design tokens)
+    #   --legacy -> original VTracer-bridge/StarVector pipeline
+    if '--legacy' in sys.argv:
+        compiler, mode = compile_object_svg, "LEGACY (VTracer-bridge/StarVector)"
+    elif '--color' in sys.argv:
+        compiler, mode = compile_object_svg_hifi, "HiFi colour (TZ v3.0)"
+    else:
+        compiler, mode = compile_object_svg_mono, "Monochrome Standard (TZ v3.1)"
+    mono = compiler is compile_object_svg_mono
+    print(f"Starting A05: SVG Compiler & QA Auditor script... mode: {mode}")
     design_tokens = load_design_tokens()
-    
+
     kg_dir = "03_knowledge_graph"
     if not os.path.exists(kg_dir):
         print(f"Directory {kg_dir} does not exist.")
         return
-        
-    success_count = 0
-    total_count = 0
-    
+
+    # CR v3.3: full clean rebuild — wipe old SVGs (only for the monochrome
+    # standard pipeline, which owns the svg_<stem>.svg naming).
+    if mono and '--no-clean' not in sys.argv:
+        clean_outputs()
+
+    # Build the work list and order it by SOURCE filename (natural sort) so
+    # outputs follow input order and collision suffixes are deterministic.
+    work = []
     for file in os.listdir(kg_dir):
         if file.startswith("COMP-") and file.endswith(".json"):
             passport_id = os.path.splitext(file)[0]
-            print(f"\n--- Compiling {passport_id} ---")
-            total_count += 1
             try:
-                if compile_object_svg(passport_id, design_tokens):
-                    success_count += 1
-            except Exception as e:
-                import traceback
-                err_msg = f"Compilation failed: {e}\n{traceback.format_exc()}"
-                print(f"[FAIL] Error compiling {passport_id}: {e}")
-                log_qa_failure(passport_id, [f"Compilation error: {e}"])
-                log_agent_trace(passport_id, "Failed", 0, err_msg)
-                
+                with open(os.path.join(kg_dir, file), encoding='utf-8') as f:
+                    src = json.load(f).get('source_file', passport_id)
+            except Exception:
+                src = passport_id
+            work.append((passport_id, src))
+    work.sort(key=lambda ps: natural_key(ps[1]))
+
+    success_count = 0
+    total_count = 0
+    used_names = set()
+
+    for passport_id, src in work:
+        print(f"\n--- Compiling {passport_id} ({src}) ---")
+        total_count += 1
+        try:
+            if mono:
+                out_name = make_output_name(src, used_names)
+                ok = compiler(passport_id, design_tokens, out_name)
+            else:
+                ok = compiler(passport_id, design_tokens)
+            if ok:
+                success_count += 1
+        except Exception as e:
+            import traceback
+            err_msg = f"Compilation failed: {e}\n{traceback.format_exc()}"
+            print(f"[FAIL] Error compiling {passport_id}: {e}")
+            log_qa_failure(passport_id, [f"Compilation error: {e}"])
+            log_agent_trace(passport_id, "Failed", 0, err_msg)
+
     print(f"\n--- Compilation Summary ---")
     print(f"Total compiled: {total_count}")
     print(f"Success (QA Passed): {success_count}")

@@ -85,6 +85,20 @@ def generate_markdown_passport(data):
     complexity_ru = comp_map.get(data['complexity'], data['complexity'])
     md += f"- **Сложность сцены:** {complexity_ru}\n"
     md += f"- **Провенанс:** {data.get('provenance', 'Локальный диск / Тестовый ассет')}\n\n"
+
+    # Classification block (A07, TZ v3.1)
+    if data.get('input_type'):
+        md += "## 1A. КЛАССИФИКАЦИЯ И РЕЖИМ РЕНДЕРА\n"
+        md += f"- **Класс изображения:** {data['input_type']}\n"
+        md += f"- **Режим рендера:** {data.get('render_mode', 'STANDARD_VECTOR')}\n"
+        md += f"- **Уровень детализации:** {data.get('vector_detail_level', 'HIGH')}\n"
+        if 'aspect_ratio' in data:
+            md += f"- **Соотношение сторон:** {data['aspect_ratio']} "
+            md += "(сохраняется)\n" if data.get('preserve_aspect_ratio', True) else "\n"
+        tc = data.get('target_canvas')
+        if tc:
+            md += f"- **Целевой canvas:** {tc.get('width')}x{tc.get('height')}\n"
+        md += "- **Стандарт вывода:** только #000000, прозрачный фон, полностью вектор\n\n"
     
     md += "## 2. СЕМАНТИЧЕСКАЯ ДЕКОНСТРУКЦИЯ (СЛОИ)\n"
     md += "*Слои в порядке наложения от заднего плана к переднему.*\n\n"

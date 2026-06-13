@@ -46,6 +46,35 @@
     "provenance": {
       "type": "string"
     },
+    "input_type": {
+      "type": "string",
+      "enum": [
+        "HUMAN_PHOTO", "OBJECT_PHOTO", "LOGO", "ICON",
+        "ILLUSTRATION", "PACKAGE_DESIGN", "TECHNICAL_GRAPHIC"
+      ],
+      "description": "Класс изображения (A07 classify.py). TZ v3.1."
+    },
+    "render_mode": {
+      "type": "string",
+      "enum": ["SKETCH_VECTOR", "STANDARD_VECTOR"],
+      "description": "Режим рендера: скетч-линии или монохромная заливка."
+    },
+    "vector_detail_level": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "ULTRA"]
+    },
+    "source_width": { "type": "integer", "minimum": 1 },
+    "source_height": { "type": "integer", "minimum": 1 },
+    "aspect_ratio": { "type": "string" },
+    "target_canvas": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "preserve_aspect_ratio": { "type": "boolean" },
+    "is_tonal": { "type": "boolean" },
     "layers": {
       "type": "array",
       "minItems": 1,

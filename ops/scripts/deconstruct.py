@@ -8,6 +8,9 @@ import cv2
 
 # Ensure we can run it from project root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+# Allow importing sibling classifier
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+import classify as classifier
 
 class RoutingAmbiguityError(Exception):
     pass
@@ -217,6 +220,20 @@ def deconstruct_image(image_path, design_tokens):
         }
     }
     
+    # A07: classify image (type, render mode, detail, aspect, sketch dirs) — TZ v3.1/3.2
+    try:
+        cls = classifier.classify(image_path)
+        raw_data.update({k: v for k, v in cls.items() if k != "signals"})
+        print(f"[CLASSIFY] {os.path.basename(image_path)} -> {cls['input_type']} "
+              f"/ {cls['render_mode']} / {cls['vector_detail_level']}")
+    except Exception as e:
+        print(f"[WARN] Classification failed for {image_path}: {e}; "
+              f"defaulting to GRAPHIC/STANDARD_VECTOR")
+        raw_data.update({
+            "input_type": "ILLUSTRATION", "render_mode": "STANDARD_VECTOR",
+            "vector_detail_level": "HIGH",
+        })
+
     duration_ms = (time.time() - start_time) * 1000
     return raw_data, duration_ms
 
