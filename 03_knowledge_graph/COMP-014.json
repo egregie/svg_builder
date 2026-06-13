@@ -1,0 +1,71 @@
+{
+  "source_file": "kover_05.jpg",
+  "resolution": {
+    "width_px": 1600,
+    "height_px": 1055
+  },
+  "complexity": "High",
+  "provenance": "Local disk / Test asset",
+  "layers": [
+    {
+      "layer_index": 1,
+      "geometry_type": "BoundingRect",
+      "engine": "StarVector",
+      "color_token": "--dark",
+      "bounding_box": [
+        0.0,
+        0.0,
+        1600.0,
+        1055.0
+      ]
+    },
+    {
+      "layer_index": 2,
+      "geometry_type": "CompoundPath",
+      "engine": "OpenCV+StarVector",
+      "color_token": "--muted",
+      "anchor_points_limit": 45,
+      "bounding_box": [
+        0.0,
+        0.0,
+        1600.0,
+        1055.0
+      ]
+    }
+  ],
+  "metrics": {
+    "unique_colors": 1473,
+    "has_gradient": true,
+    "canny_score": 1.3260981405438286,
+    "snr_db": -8.865198964716289
+  },
+  "input_type": "OBJECT_PHOTO",
+  "render_mode": "SKETCH_VECTOR",
+  "vector_detail_level": "HIGH",
+  "is_tonal": true,
+  "source_width": 1600,
+  "source_height": 1055,
+  "aspect_ratio": "320:211",
+  "target_canvas": {
+    "width": 1024,
+    "height": 675
+  },
+  "preserve_aspect_ratio": true,
+  "line_quality": "HIGH",
+  "noise_reduction": "MEDIUM",
+  "min_line_width": 0.4,
+  "max_line_width": 2.0,
+  "keep_facial_details": false,
+  "keep_hair_details": false,
+  "keep_clothing_details": false,
+  "remove_texture_noise": true,
+  "passport_id": "COMP-014",
+  "automation_meta": {
+    "deconstruction_status": "Verified",
+    "export_path": "/05_output_svg/res_comp_014.svg",
+    "entity_id": "logo_primitive_014",
+    "source_ref": "SRC-0034"
+  },
+  "source_filename": "kover_05.jpg",
+  "output_filename": "svg_kover_05.svg"
+}

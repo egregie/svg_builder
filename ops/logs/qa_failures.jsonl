@@ -5,3 +5,26 @@
 {"timestamp": "2026-06-11T11:55:57.018465Z", "passport_id": "COMP-003", "errors": ["Forbidden color name found: white"]}
 {"timestamp": "2026-06-11T11:56:12.164304Z", "passport_id": "COMP-004", "errors": ["Forbidden color name found: white"]}
 {"timestamp": "2026-06-11T11:56:26.478396Z", "passport_id": "COMP-005", "errors": ["Forbidden color name found: white"]}
+{"timestamp": "2026-06-13T11:52:58.621448Z", "passport_id": "COMP-008", "errors": ["Perceptual gate failed: SSIM=0.9205"]}
+{"timestamp": "2026-06-13T11:53:13.938675Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6785"]}
+{"timestamp": "2026-06-13T11:53:38.102603Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}
+{"timestamp": "2026-06-13T11:56:13.783507Z", "passport_id": "COMP-008", "errors": ["Perceptual gate failed: SSIM=0.9205"]}
+{"timestamp": "2026-06-13T11:56:29.197113Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6785"]}
+{"timestamp": "2026-06-13T11:56:51.693494Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}
+{"timestamp": "2026-06-13T11:57:47.307240Z", "passport_id": "COMP-008", "errors": ["Perceptual gate failed: SSIM=0.9205"]}
+{"timestamp": "2026-06-13T11:58:02.832373Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6785"]}
+{"timestamp": "2026-06-13T11:58:24.338498Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}
+{"timestamp": "2026-06-13T12:17:19.540503Z", "passport_id": "COMP-008", "errors": ["Perceptual gate failed: SSIM=0.9205"]}
+{"timestamp": "2026-06-13T12:17:23.675246Z", "passport_id": "COMP-009", "errors": ["Perceptual gate failed: SSIM=0.8364"]}
+{"timestamp": "2026-06-13T12:17:34.889921Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6637"]}
+{"timestamp": "2026-06-13T12:17:57.611392Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}
+{"timestamp": "2026-06-13T13:26:59.223009Z", "passport_id": "COMP-008", "errors": ["Perceptual gate failed: SSIM=0.9119"]}
+{"timestamp": "2026-06-13T13:27:03.449965Z", "passport_id": "COMP-009", "errors": ["Perceptual gate failed: SSIM=0.8364"]}
+{"timestamp": "2026-06-13T13:27:14.563465Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6637"]}
+{"timestamp": "2026-06-13T13:27:40.302953Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}
+{"timestamp": "2026-06-13T13:48:58.734373Z", "passport_id": "COMP-008", "errors": ["Perceptual gate failed: SSIM=0.9119"]}
+{"timestamp": "2026-06-13T13:48:58.983403Z", "passport_id": "COMP-020", "errors": ["Perceptual gate failed: SSIM=0.8881"]}
+{"timestamp": "2026-06-13T13:49:02.930273Z", "passport_id": "COMP-021", "errors": ["Perceptual gate failed: SSIM=0.9185"]}
+{"timestamp": "2026-06-13T13:49:08.588241Z", "passport_id": "COMP-009", "errors": ["Perceptual gate failed: SSIM=0.8364"]}
+{"timestamp": "2026-06-13T13:49:19.774141Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6637"]}
+{"timestamp": "2026-06-13T13:49:46.608711Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}

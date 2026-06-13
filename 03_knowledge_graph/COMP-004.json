@@ -39,11 +39,25 @@
     "canny_score": 3.4812831562349618,
     "snr_db": 5.727957198968684
   },
+  "input_type": "LOGO",
+  "render_mode": "STANDARD_VECTOR",
+  "vector_detail_level": "ULTRA",
+  "is_tonal": false,
+  "source_width": 1230,
+  "source_height": 469,
+  "aspect_ratio": "1230:469",
+  "target_canvas": {
+    "width": 1024,
+    "height": 390
+  },
+  "preserve_aspect_ratio": true,
   "passport_id": "COMP-004",
   "automation_meta": {
     "deconstruction_status": "Verified",
     "export_path": "/05_output_svg/res_comp_004.svg",
     "entity_id": "logo_primitive_004",
     "source_ref": "SRC-0024"
-  }
+  },
+  "source_filename": "logo_ym_proskin_005.png",
+  "output_filename": "svg_logo_ym_proskin_005.svg"
 }
