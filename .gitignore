@@ -28,3 +28,13 @@ input/*.png
 input/*.jpg
 input/*.jpeg
 input/*.webp
+
+# Raster working copies (regenerable from input/ by deconstruct.py)
+01_input_raster/**/*.png
+01_input_raster/**/*.jpg
+01_input_raster/**/*.jpeg
+01_input_raster/**/*.JPG
+01_input_raster/**/*.webp
+
+# QA preview / scratch renders
+ops/qa_previews/
