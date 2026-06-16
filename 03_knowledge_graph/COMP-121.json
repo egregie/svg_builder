@@ -1,0 +1,63 @@
+{
+  "source_file": "postakne_mini_07.png",
+  "resolution": {
+    "width_px": 120,
+    "height_px": 149
+  },
+  "complexity": "High",
+  "provenance": "Local disk / Test asset",
+  "layers": [
+    {
+      "layer_index": 1,
+      "geometry_type": "BoundingRect",
+      "engine": "StarVector",
+      "color_token": "--bg",
+      "bounding_box": [
+        0.0,
+        0.0,
+        120.0,
+        149.0
+      ]
+    },
+    {
+      "layer_index": 2,
+      "geometry_type": "CompoundPath",
+      "engine": "OpenCV+StarVector",
+      "color_token": "--dark",
+      "anchor_points_limit": 45,
+      "bounding_box": [
+        0.0,
+        0.0,
+        120.0,
+        149.0
+      ]
+    }
+  ],
+  "metrics": {
+    "unique_colors": 73,
+    "has_gradient": true,
+    "canny_score": 2.8856311107882724,
+    "snr_db": -0.5960988061799394
+  },
+  "input_type": "ICON",
+  "render_mode": "STANDARD_VECTOR",
+  "vector_detail_level": "ULTRA",
+  "is_tonal": false,
+  "source_width": 120,
+  "source_height": 149,
+  "aspect_ratio": "120:149",
+  "target_canvas": {
+    "width": 825,
+    "height": 1024
+  },
+  "preserve_aspect_ratio": true,
+  "passport_id": "COMP-121",
+  "automation_meta": {
+    "deconstruction_status": "Verified",
+    "export_path": "/05_output_svg/res_comp_121.svg",
+    "entity_id": "logo_primitive_121",
+    "source_ref": "SRC-0141"
+  },
+  "source_filename": "postakne_mini_07.png",
+  "output_filename": "svg_postakne_mini_07.svg"
+}

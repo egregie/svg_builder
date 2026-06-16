@@ -1,0 +1,63 @@
+{
+  "source_file": "photo_019.jpg",
+  "resolution": {
+    "width_px": 1284,
+    "height_px": 1300
+  },
+  "complexity": "High",
+  "provenance": "Local disk / Test asset",
+  "layers": [
+    {
+      "layer_index": 1,
+      "geometry_type": "BoundingRect",
+      "engine": "StarVector",
+      "color_token": "--bg",
+      "bounding_box": [
+        0.0,
+        0.0,
+        1284.0,
+        1300.0
+      ]
+    },
+    {
+      "layer_index": 2,
+      "geometry_type": "CompoundPath",
+      "engine": "OpenCV+StarVector",
+      "color_token": "--dark",
+      "anchor_points_limit": 45,
+      "bounding_box": [
+        0.0,
+        0.0,
+        1284.0,
+        1300.0
+      ]
+    }
+  ],
+  "metrics": {
+    "unique_colors": 279,
+    "has_gradient": true,
+    "canny_score": 1.3305921048440865,
+    "snr_db": 16.55641715344182
+  },
+  "input_type": "ILLUSTRATION",
+  "render_mode": "STANDARD_VECTOR",
+  "vector_detail_level": "HIGH",
+  "is_tonal": false,
+  "source_width": 1284,
+  "source_height": 1300,
+  "aspect_ratio": "321:325",
+  "target_canvas": {
+    "width": 1011,
+    "height": 1024
+  },
+  "preserve_aspect_ratio": true,
+  "passport_id": "COMP-047",
+  "automation_meta": {
+    "deconstruction_status": "Verified",
+    "export_path": "/05_output_svg/res_comp_047.svg",
+    "entity_id": "logo_primitive_047",
+    "source_ref": "SRC-0067"
+  },
+  "source_filename": "photo_019.jpg",
+  "output_filename": "svg_photo_019.svg"
+}
