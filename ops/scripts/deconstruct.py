@@ -249,9 +249,14 @@ def main():
         
     import shutil
     
-    for file in os.listdir(input_dir):
-        if file.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-            img_path = os.path.join(input_dir, file)
+    # Scan input/ recursively so subfolders (e.g. input/photos/) are processed.
+    # Skip backup/service dirs such as input/photos/_precrop_originals/.
+    for root, dirs, filenames in os.walk(input_dir):
+        dirs[:] = [d for d in dirs if not d.startswith('_') and not d.startswith('.')]
+        for file in filenames:
+            if not file.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                continue
+            img_path = os.path.join(root, file)
             print(f"Processing: {img_path}")
             try:
                 raw_data, duration = deconstruct_image(img_path, design_tokens)
