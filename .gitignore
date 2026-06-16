@@ -23,11 +23,16 @@ ops/logs/*
 05_output_svg/quarantine/*
 !05_output_svg/quarantine/.gitkeep
 
-# Input folder binary files
+# Input folder binary files (top-level and any subfolder, e.g. input/photos/)
 input/*.png
 input/*.jpg
 input/*.jpeg
 input/*.webp
+input/**/*.png
+input/**/*.jpg
+input/**/*.jpeg
+input/**/*.JPG
+input/**/*.webp
 
 # Raster working copies (regenerable from input/ by deconstruct.py)
 01_input_raster/**/*.png
