@@ -71,3 +71,5 @@
 {"timestamp": "2026-06-17T18:59:50.256204Z", "passport_id": "COMP-090", "errors": ["Perceptual gate failed: SSIM=0.9265"]}
 {"timestamp": "2026-06-17T19:00:36.975561Z", "passport_id": "COMP-109", "errors": ["Perceptual gate failed: SSIM=0.9163"]}
 {"timestamp": "2026-06-17T19:01:07.448484Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}
+{"timestamp": "2026-06-17T19:29:49.126995Z", "passport_id": "COMP-014", "errors": ["Perceptual gate failed: SSIM=0.6637"]}
+{"timestamp": "2026-06-17T19:36:26.732667Z", "passport_id": "COMP-018", "errors": ["Perceptual gate failed: SSIM=0.7101"]}

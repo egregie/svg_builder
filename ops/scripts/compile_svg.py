@@ -319,15 +319,41 @@ def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
     annotate_passport(passport_id, data['source_file'], output_name)
     stem = os.path.splitext(output_name)[0]
 
-    if render_mode == 'SKETCH_VECTOR':
-        result = sketch_vectorize.vectorize_sketch(image_path, detail)
-    else:
-        result = hifi_vectorize.vectorize_monochrome(image_path, detail)
+    def _render(mode):
+        if mode == 'SKETCH_VECTOR':
+            return sketch_vectorize.vectorize_sketch(image_path, detail)
+        return hifi_vectorize.vectorize_monochrome(image_path, detail)
+
+    # CR v3.5: mode-recovery fallback. The classifier sometimes routes a tonal /
+    # line-art image to STANDARD fill (e.g. a B&W line portrait tagged LOGO) — it
+    # renders as a dense blob and fails the perceptual gate. If the classified
+    # mode fails its gate, try the OTHER mode and accept it only if IT passes its
+    # own gate (and, for sketch, has a sane line fraction). This can never
+    # regress an image that already passes, and recovers misrouted sketches.
+    classified_mode = render_mode
+    result = _render(render_mode)
+    fallback = None
+    if not result.get('gate_passed', True):
+        other = 'STANDARD_VECTOR' if render_mode == 'SKETCH_VECTOR' else 'SKETCH_VECTOR'
+        alt = _render(other)
+        accept = alt.get('gate_passed', False)
+        if other == 'SKETCH_VECTOR':
+            lf = alt.get('line_fraction', 0.0)
+            rbf = alt.get('render_black_frac', 1.0)
+            # not near-empty, and the rendered drawing is not a near-black blob
+            # (dark sources can pass the SSIM gate yet render mostly black).
+            accept = accept and (0.004 <= lf <= 0.45) and (rbf <= 0.5)
+        if accept:
+            result, render_mode, fallback = alt, other, other
+            print(f"  [FALLBACK] {classified_mode} failed gate -> {other} passed "
+                  f"(SSIM={result['ssim_ref']:.4f})")
 
     svg_content = normalize_monochrome(result['svg'])
     metrics = {
         "input_type": input_type,
         "render_mode": render_mode,
+        "classified_mode": classified_mode,
+        "fallback_from": (classified_mode if fallback else None),
         "detail": detail,
         "ssim": round(result['ssim_ref'], 4),
         "source_filename": os.path.basename(data['source_file']),

@@ -138,7 +138,13 @@ def vectorize_sketch(image_path, detail_level='HIGH', log=print):
     svg_text = build_black_svg(view_w, view_h, cw, ch, paths)
     rendered = render_svg(svg_text, view_w, view_h)
     s_ref = score_ssim(ref_rgb, rendered)
-    log(f"  [SKETCH] SSIM(lines) {s_ref:.4f}, paths={len(paths)}")
+    # Fraction of the RENDERED drawing (composited on white) that is black. This
+    # is the honest "is it a blob?" signal — the line-mask fraction undercounts
+    # because traced dark regions fill far more area than their pixels. A dark
+    # source (e.g. a black wallpaper) can blob out near-solid black here.
+    render_black = float((np.asarray(rendered).reshape(-1, 3).mean(1) < 128).mean())
+    log(f"  [SKETCH] SSIM(lines) {s_ref:.4f}, paths={len(paths)}, "
+        f"render_black={render_black*100:.1f}%")
 
     return {
         'svg': svg_text,
@@ -149,6 +155,7 @@ def vectorize_sketch(image_path, detail_level='HIGH', log=print):
         'mode': 'SKETCH_VECTOR',
         'gate_passed': s_ref >= SSIM_GATE,
         'line_fraction': round(black_frac, 4),
+        'render_black_frac': round(render_black, 4),
     }
 
 
