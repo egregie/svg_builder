@@ -59,9 +59,9 @@ Successfully processed the remaining and new images after directory archiving:
 - `cat_4.jpg` -> `svg_cat_4.svg`
 - `cat_5.jpg` -> `svg_cat_5.svg`
 - `logo_pee.png` -> `svg_logo_pee.svg`
-- `des/svg_full_name_ym_proskin.png` -> `svg_svg_full_name_ym_proskin.svg`
-- `des/svg_full_name_ym_proskin_black.png` -> `svg_svg_full_name_ym_proskin_black.svg`
+- `svg_svg_full_name_ym_proskin.png` -> `svg_svg_svg_full_name_ym_proskin.svg`
 
 ### Verification Results
-All 8 compiled SVGs successfully passed QA validation (0 failures) and are available in [05_output_svg/](file:///c:/svg_builder/05_output_svg/).
+All 7 compiled SVGs successfully passed QA validation (0 failures) and are available in [05_output_svg/](file:///c:/svg_builder/05_output_svg/).
+
 
