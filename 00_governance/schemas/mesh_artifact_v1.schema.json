@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mesh_artifact_v1",
+  "title": "3MF mesh artifact metadata (compile_3mf Stage 4 / T4)",
+  "description": "Sidecar metadata for every released .3mf, mirrored into the knowledge graph. Closes the provenance chain raster -> svg_artifact -> mesh_artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "comp_id", "source_svg_filename", "spec_version",
+    "px_to_mm", "extrusion_height_mm", "polarity", "base_plate",
+    "volume_mm3", "bbox_mm", "watertight", "winding_consistent",
+    "max_printer_bounds_mm", "within_bounds"
+  ],
+  "properties": {
+    "schema": { "const": "mesh_artifact_v1" },
+    "comp_id": { "type": "string", "pattern": "^COMP-[0-9]{3,}$" },
+    "source_svg_filename": { "type": "string", "pattern": "^svg_.+\\.svg$" },
+    "spec_version": { "type": "string" },
+    "px_to_mm": { "type": "number", "exclusiveMinimum": 0 },
+    "extrusion_height_mm": { "type": "number", "exclusiveMinimum": 0 },
+    "polarity": { "enum": ["cutout", "raised"] },
+    "base_plate": { "type": "boolean" },
+    "volume_mm3": { "type": "number" },
+    "bbox_mm": {
+      "type": "array", "items": { "type": "number" },
+      "minItems": 3, "maxItems": 3
+    },
+    "watertight": { "type": "boolean" },
+    "winding_consistent": { "type": "boolean" },
+    "max_printer_bounds_mm": {
+      "type": "array", "items": { "type": "number" },
+      "minItems": 3, "maxItems": 3
+    },
+    "within_bounds": { "type": "boolean" }
+  }
+}

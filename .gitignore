@@ -43,3 +43,8 @@ input/**/*.webp
 
 # QA preview / scratch renders
 ops/qa_previews/
+
+# 3MF binaries (regenerable from SVG; sidecar .json metadata stays tracked)
+07_output_3mf/*.3mf
+07_output_3mf/staging/
+07_output_3mf/quarantine/

@@ -56,6 +56,17 @@
     "px_to_mm": null,
     "note": "Reserved for R-06. The canonical viewBox is in px; physical mapping is declared per-artifact in metadata (value computed by a later stage, not here)."
   },
+  "three_mf": {
+    "target_long_side_mm": 500.0,
+    "extrusion_height_mm": 4.0,
+    "base_plate": false,
+    "base_plate_mm": 0.6,
+    "polarity": "cutout",
+    "min_feature_mm": 0.8,
+    "max_printer_bounds_mm": [550.0, 450.0, 450.0],
+    "output_units": "millimeter",
+    "$comment": "Stage 4 (compile_3mf.py). px_to_mm = target_long_side_mm / max(viewBoxW, viewBoxH), per artifact. Override hierarchy: CLI > COMP-*.json 'three_mf_override' > this block."
+  },
   "artifact_contract_schema": "00_governance/schemas/svg_artifact_v1.schema.json",
   "owner_decisions": {
     "2026-06-19_color_model": "Monochrome #000000 is canonical/active; Zero Black Policy scoped to the legacy --color pipeline.",

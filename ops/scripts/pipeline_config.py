@@ -54,3 +54,25 @@ def spec_version():
 
 def active_color_model():
     return get_config().get('color_model', {}).get('active', 'monochrome')
+
+
+_THREE_MF_FALLBACK = {
+    'target_long_side_mm': 500.0, 'extrusion_height_mm': 4.0,
+    'base_plate': False, 'base_plate_mm': 0.6, 'polarity': 'cutout',
+    'min_feature_mm': 0.8, 'max_printer_bounds_mm': [550.0, 450.0, 450.0],
+    'output_units': 'millimeter',
+}
+
+
+def three_mf_config(comp_override=None, cli_override=None):
+    """Resolve the Stage-4 config per the hierarchy of truth (compile_3mf T0):
+    CLI args > COMP-*.json 'three_mf_override' > pipeline_config.json 'three_mf'
+    > built-in fallback. Each later source only overrides provided keys."""
+    cfg = dict(_THREE_MF_FALLBACK)
+    cfg.update({k: v for k, v in get_config().get('three_mf', {}).items()
+                if not k.startswith('$')})
+    if comp_override:
+        cfg.update(comp_override)
+    if cli_override:
+        cfg.update(cli_override)
+    return cfg

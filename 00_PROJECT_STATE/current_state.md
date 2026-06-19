@@ -12,4 +12,5 @@
 - **Рабочий корпус**: 7 объектов в `05_output_svg/` (cat_1–5, logo_pee, full-name). Ранее обработанные 66 — в `06_archive/`.
 - **Контракт артефакта**: каждый релизный SVG — standalone + встроенный `<metadata id="svgcad">` (схема [`svg_artifact_v1`](file:///c:/svg_builder/00_governance/schemas/svg_artifact_v1.schema.json)); зеркалится в knowledge graph.
 - **Статус QA**: 7/7 прошли релиз-гейт; 7/7 конформны контракту артефакта (`python ops/scripts/validate.py --artifacts`).
+- **Stage 4 (compile_3mf)**: ветка `compile_3mf` (от `svg_cad`, не влита). `ops/scripts/compile_3mf.py` собирает печатные `.3mf` из `3mf_eligible`-артефактов. Прогон: 3/3 eligible (cat_3, logo_pee, full_name) → watertight-меши в `07_output_3mf/` (мм, `unit="millimeter"`), 4 SKETCH пропущены. Конфиг в SSOT секция `three_mf` (cutout, 500мм, 4мм). Тесты `ops/tests/test_compile_3mf.py` 14/14.
 - **Что сломано / ограничено**: см. [known_problems.md](file:///c:/svg_builder/00_PROJECT_STATE/known_problems.md)

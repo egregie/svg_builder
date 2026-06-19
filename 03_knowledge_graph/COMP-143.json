@@ -1,5 +1,5 @@
 {
-  "source_file": "svg_svg_full_name_ym_proskin.png",
+  "source_file": "svg_full_name_ym_proskin.png",
   "resolution": {
     "width_px": 1794,
     "height_px": 711
@@ -58,8 +58,8 @@
     "entity_id": "logo_primitive_143",
     "source_ref": "SRC-0163"
   },
-  "source_filename": "svg_svg_full_name_ym_proskin.png",
-  "output_filename": "svg_svg_svg_full_name_ym_proskin.svg",
+  "source_filename": "svg_full_name_ym_proskin.png",
+  "output_filename": "svg__full_name_ym_proskin.svg",
   "artifact_metadata": {
     "schema": "svg_artifact_v1",
     "comp_id": "COMP-143",
@@ -67,8 +67,8 @@
     "engine": "deterministic_vtracer",
     "render_mode": "STANDARD_VECTOR",
     "fallback_from": null,
-    "source_filename": "svg_svg_full_name_ym_proskin.png",
-    "output_filename": "svg_svg_svg_full_name_ym_proskin.svg",
+    "source_filename": "svg_full_name_ym_proskin.png",
+    "output_filename": "svg__full_name_ym_proskin.svg",
     "gate_results": {
       "visual": {
         "axis": "ssim",
@@ -91,5 +91,29 @@
     "viewbox": "0 0 1794 711",
     "units": "px",
     "px_to_mm": null
+  },
+  "mesh_artifact_metadata": {
+    "schema": "mesh_artifact_v1",
+    "comp_id": "COMP-143",
+    "source_svg_filename": "svg__full_name_ym_proskin.svg",
+    "spec_version": "3.5",
+    "px_to_mm": 0.278707,
+    "extrusion_height_mm": 4.0,
+    "polarity": "cutout",
+    "base_plate": false,
+    "volume_mm3": 358517.559,
+    "bbox_mm": [
+      500.0,
+      198.161,
+      4.0
+    ],
+    "watertight": true,
+    "winding_consistent": true,
+    "max_printer_bounds_mm": [
+      550.0,
+      450.0,
+      450.0
+    ],
+    "within_bounds": true
   }
 }

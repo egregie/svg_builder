@@ -59,7 +59,7 @@ Successfully processed the remaining and new images after directory archiving:
 - `cat_4.jpg` -> `svg_cat_4.svg`
 - `cat_5.jpg` -> `svg_cat_5.svg`
 - `logo_pee.png` -> `svg_logo_pee.svg`
-- `svg_svg_full_name_ym_proskin.png` -> `svg_svg_svg_full_name_ym_proskin.svg`
+- `svg_full_name_ym_proskin.png` -> `svg__full_name_ym_proskin.svg`
 
 ### Verification Results
 All 7 compiled SVGs successfully passed QA validation (0 failures) and are available in [05_output_svg/](file:///c:/svg_builder/05_output_svg/).
@@ -91,11 +91,41 @@ All 7 compiled SVGs successfully passed QA validation (0 failures) and are avail
 | svg_cat_4.svg | SKETCH_VECTOR | 0.9436 | false | release |
 | svg_cat_5.svg | SKETCH_VECTOR | 0.9447 | false | release |
 | svg_logo_pee.svg | STANDARD_VECTOR | 0.9905 | true | release |
-| svg_svg_svg_full_name_ym_proskin.svg | STANDARD_VECTOR | 0.9869 | true | release |
+| svg__full_name_ym_proskin.svg | STANDARD_VECTOR | 0.9869 | true | release |
 
 **Open questions**
 - Full manifold/geometry validator → next TZ (`compile_3mf.py`); here only the `3mf_eligible` flag.
 - ND-06 (passport versioning on re-deconstruction) — out of scope.
-- `svg_svg_svg_full_name_ym_proskin.svg` triple-prefix is a cosmetic naming artifact from the source filename, not a blocker.
+- `svg__full_name_ym_proskin.svg` triple-prefix is a cosmetic naming artifact from the source filename, not a blocker.
+
+---
+
+## compile_3mf 2026-06-19: Stage 4 — 2D SVG artifact -> printable 3MF mesh
+
+**Status:** COMPLETED on branch `compile_3mf` (from `svg_cad`, not merged).
+
+**Changes**
+- **T0:** Variant A deps (`trimesh`, `mapbox_earcut`, `manifold3d`). SSOT `three_mf` section (cutout, 500mm long side, 4mm, printer bounds 550x450x450) + `pipeline_config.three_mf_config()` override hierarchy (CLI > COMP `three_mf_override` > config). `px_to_mm = target_long_side_mm / max(viewBoxW, viewBoxH)` (closes R-06).
+- **T1:** `compile_3mf.py` parses SVG (group scale + path translate -> viewBox coords), flattens Beziers (svgpathtools), builds shapely polygons-with-holes. Vector-first; auto-fallback to raster contours (resvg render -> cv2 RETR_CCOMP) when the vector mesh is not a clean manifold. min_feature_mm cleanup; empty geometry -> quarantine.
+- **T2:** scale px->mm + Y-flip; polarity **cutout** = solid plate minus shapes poking through both faces (3D boolean, manifold3d); **raised** = extrude (+ base plate union if set). Polygon-with-many-holes built as exterior-solid minus hole-prisms (earcut caps fail otherwise).
+- **T3:** manifold validator — watertight, winding-consistent, volume>0, within printer bounds. Failure -> `07_output_3mf/quarantine/` with diagnostics.
+- **T4:** `.3mf` export (unit=millimeter injected into the OPC model XML) + `mesh_artifact_v1` sidecar + graph mirror (raster->SVG->3MF provenance).
+- **T5:** CLI (`--only`, `--profile`, `--no-clean`), A09 trace logging, regression suite `ops/tests/test_compile_3mf.py`.
+
+**Verification**
+- `python ops/tests/test_compile_3mf.py` -> 14/14 PASS.
+- `python ops/scripts/compile_3mf.py` -> 3 released, 0 quarantined, 4 skipped (SKETCH).
+- Independent reimport via trimesh -> all 3 `is_watertight==True`, `unit=millimeter` present; sidecars schema-conformant.
+
+| comp_id | output | source | bbox_mm | volume_mm3 | watertight | result |
+|---------|--------|--------|---------|------------|------------|--------|
+| COMP-022 | svg_cat_3.3mf | raster | [500, 331.95, 4] | 173508 | true | release |
+| COMP-028 | svg_logo_pee.3mf | vector | [500, 193.75, 4] | 284217 | true | release |
+| COMP-143 | svg__full_name_ym_proskin.3mf | raster | [500, 198.16, 4] | 358518 | true | release |
+| COMP-020/023/024/140 | (cat_1/4/5/2) | — | — | — | — | skip (SKETCH, not 3mf_eligible) |
+
+**Open questions**
+- SKETCH (line-art) -> 3D (tube/engrave) remains a future mode.
+- Vector parsing is precise but fragile on complex logos; raster fallback is the reliable backstop (lesson logged).
 
 

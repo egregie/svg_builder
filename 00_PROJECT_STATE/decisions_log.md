@@ -14,3 +14,12 @@
 - **Ортогональные оси качества (T2)**: визуальная (SSIM, управляет 2D-релизом), цветовая (монохром), топологическая (замкнутость) — независимы; `3mf_eligible` выводится из цвет+топология+режим. `SKETCH_VECTOR` → `3mf_eligible=false` всегда. Гейт SKETCH 0.75 НЕ откатан (намеренный). Отклонено: один скалярный гейт под все оси (E-1).
 - **Mode-recovery fallback (CR v3.5, перенесён в активный путь)**: при провале гейта классифицированного режима пробуется другой; принимается только если проходит свой гейт. Нулевой риск регрессий.
 - **Инвариант фильтрации (T3, R-03)**: foreground сохраняет ≥1 путь либо уходит в quarantine с диагностикой — не тихий пустой SVG.
+
+## compile_3mf / Stage 4 (2026-06-19) — 2D SVG → печатный 3MF-меш
+- **Инструментарий = Вариант A** (решение владельца): `trimesh` + `mapbox_earcut` (+ `manifold3d` как boolean-движок). Установлены поверх имеющихся `shapely/cv2/svgpathtools/lxml`.
+- **Cutout через 3D-boolean** (`plate − shapes` сквозь обе грани, manifold3d): даёт гарантированно watertight-трафарет. Отклонено: 2D-difference + один extrude (даёт открытые рёбра на сложных лого).
+- **Полигон-с-дырами = exterior-solid МИНУС hole-призмы (boolean)**: `extrude_polygon` (earcut) не закрывает крышку при МНОГО дырах → неманифолд. Отклонено: engine='triangle' (не помог); прямой extrude.
+- **Геометрия: vector-first, raster-fallback** (T1.3 ТЗ): вектор точен, но даёт extrusion-hostile кольца на сложных лого (даже при `is_valid==True`); при провале сборки меша берётся растровый контур (cv2 RETR_CCOMP — простые замкнутые кривые). cat_3/full_name прошли через raster, logo_pee — через vector.
+- **Манифолд-валидатор (T3)** — гейт печатопригодности, отложенный из svg_cad: watertight ∧ winding ∧ volume>0 ∧ в габаритах принтера (550×450×450). Битое → quarantine с диагностикой.
+- **px→mm в SSOT** (закрывает R-06): `target_long_side_mm / max(viewBoxW,viewBoxH)`, иерархия CLI > COMP `three_mf_override` > `pipeline_config.three_mf`.
+- **Контракт mesh_artifact_v1**: сайдкар JSON + зеркало в граф; цепочка провенанса растр→SVG→3MF. `unit="millimeter"` инжектируется в OPC-XML (trimesh его не пишет).
