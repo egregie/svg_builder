@@ -417,7 +417,27 @@ def vectorize_monochrome(image_path, detail_level='ULTRA', log=print):
         bg_set.discard(farthest)
         log(f"  [MONO] T3: all {k} clusters merged into background; retaining "
             f"cluster {farthest} as foreground (>=1-path invariant)")
-    fg_mask = ~np.isin(labels, list(bg_set))
+
+    # Ink-vs-fill: for a dark-on-light design (light background), the meaningful
+    # marks are the DARK clusters; a light interior FILL colour (e.g. the yellow
+    # disk behind a black silhouette) is paper, not ink. Filling the whole
+    # foreground there collapses the design to a solid blob (logo_pee -> black
+    # circle). So when the background is light AND real dark ink coexists with a
+    # lighter fill, keep only the dark clusters as black and let the fill show
+    # through transparent. White-on-dark and solid single-colour shapes are
+    # unaffected (they fall through to the plain foreground = everything non-bg).
+    def _luma(c):
+        return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+    INK_MAX = 160
+    nonbg = [i for i in range(k) if i not in bg_set]
+    dark = [i for i in nonbg if _luma(cen[i]) < INK_MAX]
+    if _luma(cen[bg_idx]) > 160 and dark and len(dark) < len(nonbg):
+        fg_mask = np.isin(labels, dark)
+        light = sorted(set(nonbg) - set(dark))
+        log(f"  [MONO] ink-on-light: ink clusters {sorted(dark)} -> black, "
+            f"light fill clusters {light} -> transparent")
+    else:
+        fg_mask = ~np.isin(labels, list(bg_set))
     fg_frac = float(fg_mask.mean())
     log(f"  [MONO] {detail_level}: K={k}, bg clusters {sorted(bg_set)} "
         f"(fg clusters retained {k - len(bg_set)}), foreground {fg_frac*100:.1f}%")
