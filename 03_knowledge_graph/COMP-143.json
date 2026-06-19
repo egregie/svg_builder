@@ -59,5 +59,37 @@
     "source_ref": "SRC-0163"
   },
   "source_filename": "svg_svg_full_name_ym_proskin.png",
-  "output_filename": "svg_svg_svg_full_name_ym_proskin.svg"
+  "output_filename": "svg_svg_svg_full_name_ym_proskin.svg",
+  "artifact_metadata": {
+    "schema": "svg_artifact_v1",
+    "comp_id": "COMP-143",
+    "spec_version": "3.5",
+    "engine": "deterministic_vtracer",
+    "render_mode": "STANDARD_VECTOR",
+    "fallback_from": null,
+    "source_filename": "svg_svg_full_name_ym_proskin.png",
+    "output_filename": "svg_svg_svg_full_name_ym_proskin.svg",
+    "gate_results": {
+      "visual": {
+        "axis": "ssim",
+        "value": 0.9869,
+        "threshold": 0.93,
+        "passed": true
+      },
+      "color": {
+        "axis": "monochrome",
+        "passed": true,
+        "violations": []
+      },
+      "topological": {
+        "axis": "closed_paths_no_raster",
+        "passed": true,
+        "violations": []
+      }
+    },
+    "3mf_eligible": true,
+    "viewbox": "0 0 1794 711",
+    "units": "px",
+    "px_to_mm": null
+  }
 }

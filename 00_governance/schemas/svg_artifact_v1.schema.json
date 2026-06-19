@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "svg_artifact_v1",
+  "title": "Canonical SVG artifact metadata (svg_cad T1, ND-04 keystone)",
+  "description": "Metadata carried by every released SVG from compile_svg.py (monochrome standard). Embedded in the standalone SVG as <metadata id='svgcad'> JSON and mirrored into the knowledge graph. Provides downstream consumers (compile_3mf.py, external tools) a stable, self-describing contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "comp_id", "spec_version", "engine", "render_mode",
+    "fallback_from", "source_filename", "output_filename",
+    "gate_results", "3mf_eligible", "viewbox", "units", "px_to_mm"
+  ],
+  "properties": {
+    "schema": { "const": "svg_artifact_v1" },
+    "comp_id": { "type": "string", "pattern": "^COMP-[0-9]{3,}$" },
+    "spec_version": { "type": "string" },
+    "engine": { "type": "string" },
+    "render_mode": { "enum": ["SKETCH_VECTOR", "STANDARD_VECTOR", "COLOR_LEGACY"] },
+    "fallback_from": { "type": ["string", "null"] },
+    "source_filename": { "type": "string" },
+    "output_filename": { "type": "string", "pattern": "^svg_.+\\.svg$" },
+    "gate_results": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visual", "color", "topological"],
+      "properties": {
+        "visual": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["axis", "value", "threshold", "passed"],
+          "properties": {
+            "axis": { "type": "string" },
+            "value": { "type": "number" },
+            "threshold": { "type": "number" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "color": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["axis", "passed", "violations"],
+          "properties": {
+            "axis": { "type": "string" },
+            "passed": { "type": "boolean" },
+            "violations": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "topological": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["axis", "passed", "violations"],
+          "properties": {
+            "axis": { "type": "string" },
+            "passed": { "type": "boolean" },
+            "violations": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "3mf_eligible": { "type": "boolean" },
+    "viewbox": { "type": "string", "pattern": "^0 0 [0-9.]+ [0-9.]+$" },
+    "units": { "const": "px" },
+    "px_to_mm": { "type": ["number", "null"] }
+  }
+}

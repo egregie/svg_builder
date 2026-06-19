@@ -32,7 +32,12 @@ TOKEN_SNAP_DIST = 24.0        # max RGB euclidean distance to snap cluster -> ba
 UPSCALE_BELOW = 600           # upscale x2 when max(w, h) below this
 DOWNSCALE_ABOVE_MP = 2.2      # downscale tracing for images above this many megapixels
 SSIM_EARLY_STOP = 0.985
-SSIM_RELEASE_GATE = 0.93
+# Release gate for the STANDARD_VECTOR / colour paths, sourced from the SSOT
+# (00_governance/pipeline_config.json) so there is one source of truth (svg_cad
+# T0). The literal is only a fallback if the config file is absent.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pipeline_config import gate as _gate
+SSIM_RELEASE_GATE = _gate('STANDARD_VECTOR', 'ssim_min', 0.93)
 
 # VTracer parameter grid for the perceptual tuning loop, ordered by expected quality
 PARAM_GRID = [
@@ -401,10 +406,21 @@ def vectorize_monochrome(image_path, detail_level='ULTRA', log=print):
             if any(np.linalg.norm(cen[i] - cen[j]) <= 40 for j in bg_set):
                 bg_set.add(i)
                 changed = True
+    # T3 invariant (R-03): the single-linkage merge must never swallow EVERY
+    # cluster. A smooth grayscale chains all shades into the background, leaving
+    # an empty foreground -> a blank SVG that scores SSIM~1.0 against a blank
+    # reference and would silently 'pass'. Keep the cluster most distant from the
+    # background seed as foreground so the layer always retains >=1 path.
+    if len(bg_set) >= k:
+        seed = cen[bg_idx]
+        farthest = max(range(k), key=lambda i: float(np.linalg.norm(cen[i] - seed)))
+        bg_set.discard(farthest)
+        log(f"  [MONO] T3: all {k} clusters merged into background; retaining "
+            f"cluster {farthest} as foreground (>=1-path invariant)")
     fg_mask = ~np.isin(labels, list(bg_set))
     fg_frac = float(fg_mask.mean())
-    log(f"  [MONO] {detail_level}: K={k}, bg clusters {sorted(bg_set)}, "
-        f"foreground {fg_frac*100:.1f}%")
+    log(f"  [MONO] {detail_level}: K={k}, bg clusters {sorted(bg_set)} "
+        f"(fg clusters retained {k - len(bg_set)}), foreground {fg_frac*100:.1f}%")
 
     reference = np.where(fg_mask[..., None], 0, 255).astype(np.uint8)
     reference = np.repeat(reference, 3, axis=2)
@@ -444,6 +460,15 @@ def vectorize_monochrome(image_path, detail_level='ULTRA', log=print):
     best['k'] = k
     best['mode'] = 'STANDARD_VECTOR'
     best['gate_passed'] = best['ssim_ref'] >= SSIM_RELEASE_GATE
+    # T3 (R-03): an empty foreground (no traced paths) is never a release, even
+    # though a blank-vs-blank SSIM is high. Flag it so the compiler quarantines
+    # with diagnostics instead of emitting a silent empty SVG.
+    best['n_paths'] = best.get('n_paths', 0)
+    if best['n_paths'] == 0 or fg_frac <= 0.0:
+        best['gate_passed'] = False
+        best['invariant_violation'] = (
+            f"empty foreground after filtering (fg_frac={fg_frac:.4f}, "
+            f"paths={best['n_paths']})")
     return best
 
 

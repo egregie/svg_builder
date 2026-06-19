@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <metadata id="svgcad" type="application/json">{"schema":"svg_artifact_v1","comp_id":"COMP-140","spec_version":"3.5","engine":"deterministic_vtracer","render_mode":"SKETCH_VECTOR","fallback_from":"STANDARD_VECTOR","source_filename":"cat_2.png","output_filename":"svg_cat_2.svg","gate_results":{"visual":{"axis":"ssim","value":0.8589,"threshold":0.75,"passed":true},"color":{"axis":"monochrome","passed":true,"violations":[]},"topological":{"axis":"closed_paths_no_raster","passed":true,"violations":[]}},"3mf_eligible":false,"viewbox":"0 0 512 512","units":"px","px_to_mm":null}</metadata>
   <g fill="#000000">
     <path d="M0 0 C2.31 0 4.62 0 7 0 C7 1.98 7 3.96 7 6 C4.6899999999999995 4.35 2.38 2.6999999999999997 0 1 C0 0.6699999999999999 0 0.33999999999999997 0 0 Z " transform="translate(1,0)" />
     <path d="M0 0 C2.3099999999999987 0 4.620000000000001 0 7 0 C6.009999999999998 1.6500000000000001 5.02 3.3000000000000003 4 5 C2.6799999999999997 5.33 1.3599999999999994 5.66 0 6 C0 4.02 0 2.04 0 0 Z " transform="translate(17,0)" />

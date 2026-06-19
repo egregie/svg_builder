@@ -64,4 +64,38 @@ Successfully processed the remaining and new images after directory archiving:
 ### Verification Results
 All 7 compiled SVGs successfully passed QA validation (0 failures) and are available in [05_output_svg/](file:///c:/svg_builder/05_output_svg/).
 
+---
+
+## svg_cad 2026-06-19: blockers T0–T3 before `compile_3mf.py` (spec 3.5)
+
+**Status:** COMPLETED on branch `svg_cad` (not merged to `master`).
+
+**Changes**
+- **T0 — SSOT:** `00_governance/pipeline_config.json` (spec version, engine, colour model, gate thresholds) + loader `ops/scripts/pipeline_config.py`. `sketch_vectorize.SSIM_GATE` (0.75) and `hifi_vectorize.SSIM_RELEASE_GATE` (0.93) now read from it. Resolved drift: version `3.5`, deterministic VTracer engine (StarVector excluded), colour model **monochrome** (owner decision — Zero Black scoped to the legacy `--color` path).
+- **T1 — artifact contract (ND-04 keystone):** schema `00_governance/schemas/svg_artifact_v1.schema.json` + module `ops/scripts/svg_contract.py`. Canonical output = standalone `<svg>` carrying `<metadata id="svgcad">` (provenance, gate_results per axis, `3mf_eligible`, viewbox/units, px→mm reservation), mirrored into the knowledge graph. Audit: `validate.py --artifacts`.
+- **T2 — quality axes:** orthogonal visual (SSIM, governs 2D release) / colour (monochrome) / topological (closed paths, no raster/gradient). `3mf_eligible = mono ∧ closed ∧ STANDARD_VECTOR`; `SKETCH_VECTOR → false` always. Gate 0.75 untouched. CR v3.5 mode-recovery fallback folded into the active path.
+- **T3 — filtration invariant (R-03):** `vectorize_monochrome` never merges all clusters into the background (keeps the farthest → ≥1 path); an empty foreground is flagged (`invariant_violation`) and quarantined, not silently released.
+- **Regression suite:** `ops/tests/test_svg_cad.py` — 15 assertions across T0–T3.
+
+**Verification**
+- `python ops/tests/test_svg_cad.py` → 15/15 PASS.
+- `python ops/scripts/compile_svg.py` (7-object corpus) → 7/7 released, 0 fail.
+- `python ops/scripts/validate.py --artifacts` → 7/7 contract-conformant, 0 violations.
+- Valid example: `svg_cat_3.svg` (embedded metadata passes schema). Invalid example: metadata without `viewbox` → `validate_artifact` returns an error (T1 test).
+
+| output | render_mode | SSIM | 3mf_eligible | result |
+|--------|-------------|------|--------------|--------|
+| svg_cat_1.svg | SKETCH_VECTOR | 0.8881 | false | release |
+| svg_cat_2.svg | SKETCH_VECTOR | 0.8589 | false | release (fallback STANDARD→SKETCH) |
+| svg_cat_3.svg | STANDARD_VECTOR | 0.9540 | true | release |
+| svg_cat_4.svg | SKETCH_VECTOR | 0.9436 | false | release |
+| svg_cat_5.svg | SKETCH_VECTOR | 0.9447 | false | release |
+| svg_logo_pee.svg | STANDARD_VECTOR | 0.9905 | true | release |
+| svg_svg_svg_full_name_ym_proskin.svg | STANDARD_VECTOR | 0.9869 | true | release |
+
+**Open questions**
+- Full manifold/geometry validator → next TZ (`compile_3mf.py`); here only the `3mf_eligible` flag.
+- ND-06 (passport versioning on re-deconstruction) — out of scope.
+- `svg_svg_svg_full_name_ym_proskin.svg` triple-prefix is a cosmetic naming artifact from the source filename, not a blocker.
+
 

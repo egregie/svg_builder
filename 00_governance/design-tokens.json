@@ -2,6 +2,7 @@
   "version": "1.0",
   "locked": true,
   "comment": "Zero Black Policy enforced. #000 / #000000 запрещены. Изменения только через PR.",
+  "scope": "Применяется ТОЛЬКО к легаси цветовому пути (hifi_vectorize.vectorize, флаг --color). Активный финальный вывод — монохром #000000/прозрачный (см. 00_governance/pipeline_config.json, решение владельца 2026-06-19, svg_cad T0/E-5).",
   "colors": {
     "--dark": "#2C3440",
     "--bg": "#F8F6F4",

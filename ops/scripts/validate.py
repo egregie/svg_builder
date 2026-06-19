@@ -148,7 +148,37 @@ def generate_markdown_passport(data):
     
     return md
 
+def validate_released_artifacts():
+    """svg_cad T1 audit: check every released SVG in 05_output_svg/ against the
+    artifact contract schema (svg_artifact_v1) via its embedded svgcad metadata.
+    Non-conformant artifacts are reported (they should never reach release — the
+    compiler quarantines them at emission; this is an independent audit)."""
+    import glob
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    import svg_contract
+    files = sorted(glob.glob('05_output_svg/svg_*.svg'))
+    ok = bad = 0
+    for fp in files:
+        with open(fp, 'r', encoding='utf-8') as f:
+            svg = f.read()
+        meta = svg_contract.extract_metadata(svg)
+        if meta is None:
+            print(f"[NO METADATA] {os.path.basename(fp)}")
+            bad += 1
+            continue
+        errs = svg_contract.validate_artifact(meta)
+        if errs:
+            print(f"[SCHEMA FAIL] {os.path.basename(fp)}: {errs}")
+            bad += 1
+        else:
+            ok += 1
+    print(f"\nArtifact audit: {ok} conformant / {bad} non-conformant of {len(files)}")
+    return bad == 0
+
 def main():
+    if '--artifacts' in sys.argv:
+        validate_released_artifacts()
+        return
     print("Starting A02: Validator & Normalizer script...")
     
     try:

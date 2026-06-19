@@ -349,6 +349,28 @@ def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
                   f"(SSIM={result['ssim_ref']:.4f})")
 
     svg_content = normalize_monochrome(result['svg'])
+
+    # svg_cad T2: orthogonal quality axes. Colour (monochrome conformance) and
+    # topological (closed paths, no raster/gradient) are independent of the
+    # visual SSIM axis. 3mf_eligible is derived from colour+topological+mode.
+    import svg_contract
+    import pipeline_config
+    color_violations = validate_monochrome(svg_content)
+    topo = svg_contract.topology_axis(svg_content)
+    vb = re.search(r'viewBox="([^"]+)"', svg_content)
+    viewbox = vb.group(1) if vb else "0 0 0 0"
+    threshold = pipeline_config.gate(render_mode, 'ssim_min', 0.75)
+
+    # svg_cad T1: assemble + (below) validate + embed the contract metadata.
+    meta = svg_contract.build_metadata(
+        comp_id=passport_id, spec_version=pipeline_config.spec_version(),
+        engine="deterministic_vtracer", render_mode=render_mode,
+        fallback_from=(classified_mode if fallback else None),
+        source_filename=os.path.basename(data['source_file']),
+        output_filename=output_name, ssim=result['ssim_ref'],
+        ssim_threshold=threshold, color_violations=color_violations,
+        topo=topo, viewbox=viewbox)
+
     metrics = {
         "input_type": input_type,
         "render_mode": render_mode,
@@ -356,6 +378,7 @@ def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
         "fallback_from": (classified_mode if fallback else None),
         "detail": detail,
         "ssim": round(result['ssim_ref'], 4),
+        "3mf_eligible": meta['3mf_eligible'],
         "source_filename": os.path.basename(data['source_file']),
         "output_filename": output_name,
         "vtracer_params": result.get('params'),
@@ -366,11 +389,23 @@ def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
               encoding='utf-8') as f:
         f.write(svg_content)
 
-    errors = validate_monochrome(svg_content)
+    # Release decision (2D) is governed by the VISUAL axis (SSIM gate) + colour
+    # axis + naming. 3mf_eligible is an independent metadata flag and does NOT
+    # block a 2D release (audit principle 2).
+    errors = list(color_violations)
     if not re.match(r'^svg_.+\.svg$', output_name):           # CR v3.3 §8.1
         errors.append(f"Output filename violates naming standard: {output_name}")
     if not result.get('gate_passed', True):
         errors.append(f"Perceptual gate failed: SSIM={result['ssim_ref']:.4f}")
+    if result.get('invariant_violation'):                     # svg_cad T3 (R-03)
+        errors.append(f"T3 filtration invariant: {result['invariant_violation']}")
+    schema_errs = svg_contract.validate_artifact(meta)        # svg_cad T1 schema
+    if schema_errs:
+        errors.append(f"Artifact schema violation: {schema_errs}")
+
+    # Embed the contract metadata so the standalone artifact is self-describing.
+    svg_out = svg_contract.embed_metadata(svg_content, meta)
+    annotate_passport(passport_id, data['source_file'], output_name, meta)
 
     duration_ms = (time.time() - start_time) * 1000
     if errors:
@@ -380,16 +415,17 @@ def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
         quarantine_path = f"05_output_svg/quarantine/{output_name}"
         os.makedirs(os.path.dirname(quarantine_path), exist_ok=True)
         with open(quarantine_path, 'w', encoding='utf-8') as f:
-            f.write(svg_content)
+            f.write(svg_out)
         print(f"[FAIL] {passport_id} ({render_mode}) -> quarantine/{output_name}: {errors}")
         return False
 
     final_path = f"05_output_svg/{output_name}"
     with open(final_path, 'w', encoding='utf-8') as f:
-        f.write(svg_content)
+        f.write(svg_out)
     log_agent_trace(passport_id, "Success", duration_ms, agent_id="A08", metrics=metrics)
-    print(f"[OK] {passport_id} [{input_type}/{render_mode}/{detail}]: "
-          f"SSIM={result['ssim_ref']:.4f} -> {final_path} ({duration_ms:.0f}ms)")
+    print(f"[OK] {passport_id} [{input_type}/{render_mode}/{detail}] "
+          f"3mf={meta['3mf_eligible']}: SSIM={result['ssim_ref']:.4f} "
+          f"-> {final_path} ({duration_ms:.0f}ms)")
     return True
 
 
@@ -574,14 +610,17 @@ def clean_outputs():
             removed += 1
     print(f"[CLEAN] Removed {removed} old SVG file(s) before full rebuild.")
 
-def annotate_passport(passport_id, source_file, output_name):
-    """Persist source/output filename mapping into the passport (CR v3.3 §7)."""
+def annotate_passport(passport_id, source_file, output_name, artifact_metadata=None):
+    """Persist source/output filename mapping into the passport (CR v3.3 §7) and
+    mirror the artifact contract metadata into the knowledge graph (svg_cad T1)."""
     path = f"03_knowledge_graph/{passport_id}.json"
     try:
         with open(path, 'r', encoding='utf-8') as f:
             d = json.load(f)
         d['source_filename'] = os.path.basename(source_file)
         d['output_filename'] = output_name
+        if artifact_metadata is not None:
+            d['artifact_metadata'] = artifact_metadata
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(d, f, indent=2, ensure_ascii=False)
     except Exception as e:

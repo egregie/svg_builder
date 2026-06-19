@@ -31,7 +31,10 @@ WORK_LONG_SIDE = 1400         # cap working resolution for stable line thickness
 # Visual review of all sketch quarantine cases down to 0.76 confirmed they are
 # recognizable line drawings, so the release floor is lowered to 0.75. Below
 # that the trace has diverged severely from the mask (genuine failure).
-SSIM_GATE = 0.75
+# Sourced from the SSOT (00_governance/pipeline_config.json) — single source of
+# truth (svg_cad T0); the literal is only a fallback if the config is absent.
+from pipeline_config import gate as _gate
+SSIM_GATE = _gate('SKETCH_VECTOR', 'ssim_min', 0.75)
 
 # detail -> CLAHE + two XDoG scales (fine for features/hair, mid for structure),
 # trace params, and minimum kept blob size. Tuned so eyes/brows/nose/lips/hair

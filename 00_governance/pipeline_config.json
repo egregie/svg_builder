@@ -1,0 +1,66 @@
+{
+  "$comment": "SSOT — single source of truth for pipeline version, engine, colour model and release gates (svg_cad T0). Resolves version drift (E-4) and colour-model ambiguity (E-5). State docs MUST reference this file instead of duplicating values. Code reads gates from here via ops/scripts/pipeline_config.py.",
+  "config_version": "1.0",
+  "spec_version": "3.5",
+  "spec_lineage": "TZ v3.0 (HiFi deterministic) -> v3.1 (monochrome+sketch) -> v3.2 (portrait detail) -> CR v3.3 (rebuild+naming) -> CR v3.4 (photo intake/de-chrome) -> CR v3.5 (mode-recovery fallback)",
+  "engine": {
+    "active": "deterministic_vtracer",
+    "standard_vector": "hifi_vectorize.vectorize_monochrome",
+    "sketch_vector": "sketch_vectorize.vectorize_sketch",
+    "color_legacy": "hifi_vectorize.vectorize (--color flag)",
+    "starvector": {
+      "status": "excluded_from_critical_path",
+      "reason": "Hallucinates trained logos/fonts; replaced by deterministic VTracer pipeline since TZ v3.0. The '8B INT4 vs 1B' question is moot — neither is on the active path."
+    }
+  },
+  "color_model": {
+    "active": "monochrome",
+    "monochrome": {
+      "fill": "#000000",
+      "background": "transparent",
+      "allowed_fills": ["#000000", "none"],
+      "note": "Canonical for final SVG output (owner decision 2026-06-19). Supersedes the Zero Black Policy for the release artifact since TZ v3.1; enforced by compile_svg.validate_monochrome."
+    },
+    "legacy_multitoken": {
+      "scope": "--color pipeline only (hifi_vectorize.vectorize)",
+      "policy": "zero_black",
+      "tokens": "00_governance/design-tokens.json",
+      "note": "design-tokens.json (locked) + Zero Black Policy apply ONLY to the legacy colour path, not to the active monochrome output."
+    }
+  },
+  "gates": {
+    "SKETCH_VECTOR": {
+      "ssim_min": 0.75,
+      "render_black_frac_max": 0.5,
+      "rationale": "SSIM scores trace fidelity to the XDoG line mask, not recognizability; 0.75 is intentional (261ca96 / CR v3.5). Do not roll back."
+    },
+    "STANDARD_VECTOR": {
+      "ssim_min": 0.93,
+      "rationale": "hifi_vectorize.SSIM_RELEASE_GATE — segmentation fidelity of the monochrome fill."
+    },
+    "COLOR_LEGACY": {
+      "ssim_min": 0.93
+    }
+  },
+  "topology": {
+    "3mf_eligible_requires": {
+      "all_subpaths_closed": true,
+      "no_raster_image": true,
+      "no_gradient": true,
+      "color_model_conformant": true,
+      "render_mode_not_sketch": true
+    },
+    "note": "Minimal eligibility FLAG only (svg_cad T2). Full manifold/geometry validation is deferred to the compile_3mf.py TZ — do not implement here."
+  },
+  "physical_scale": {
+    "px_to_mm": null,
+    "note": "Reserved for R-06. The canonical viewBox is in px; physical mapping is declared per-artifact in metadata (value computed by a later stage, not here)."
+  },
+  "artifact_contract_schema": "00_governance/schemas/svg_artifact_v1.schema.json",
+  "owner_decisions": {
+    "2026-06-19_color_model": "Monochrome #000000 is canonical/active; Zero Black Policy scoped to the legacy --color pipeline.",
+    "2026-06-19_branch_base": "svg_cad branched from master (commit 7809d58), which already contains 261ca96 and feat/classifier-tonal-routing work.",
+    "2026-06-19_engine": "Deterministic VTracer pipeline; StarVector excluded.",
+    "2026-06-19_spec_version": "3.5 (current_state.md TZ_v2.9/StarVector-8B was stale audit text)."
+  }
+}
