@@ -378,7 +378,7 @@ def find_svg(svg_name):
     direct = os.path.join('05_output_svg', svg_name)
     if os.path.exists(direct):
         return direct
-    # Tolerate minor underscore drift from manual renames (svg__x -> svg_x).
+    # Tolerate minor underscore drift from manual renames (svg_x -> svg_x).
     norm = re.sub(r'_+', '_', svg_name)
     for p in glob.glob('05_output_svg/svg_*.svg'):
         if re.sub(r'_+', '_', os.path.basename(p)) == norm:

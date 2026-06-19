@@ -114,7 +114,7 @@
 1. `ops/scripts/compile_3mf.py`: на вход — released SVG из `05_output_svg/` (или граф); фильтр `meta['3mf_eligible']==True`; для остальных — `[SKIP] not 3mf_eligible`. CLI: `python ops/scripts/compile_3mf.py [--only COMP-NNN] [--no-clean]`.
 2. Логирование A-агента (напр. A09) в `ops/logs/agent_trace.jsonl`: вход SVG, выход 3MF, габариты, объём, manifold-результат, длительность.
 3. Регрессии `ops/tests/test_compile_3mf.py`: (a) простой квадрат-с-дырой → watertight, объём>0, дыра сквозная; (b) две непересекающиеся фигуры + base plate → один связный watertight-объект; (c) искусственно битый меш → T3 ловит и карантинит; (d) `px→mm`: габарит == `target_long_side_mm`.
-4. Прогон текущего корпуса: из 7 объектов `3mf_eligible=true` ровно 3 (svg_cat_3, svg_logo_pee, svg__full_name_ym_proskin) `(S)`. Таблица: `comp_id | bbox_mm | volume_mm3 | watertight | release/quarantine`.
+4. Прогон текущего корпуса: из 7 объектов `3mf_eligible=true` ровно 3 (svg_cat_3, svg_logo_pee, svg_full_name_ym_proskin) `(S)`. Таблица: `comp_id | bbox_mm | volume_mm3 | watertight | release/quarantine`.
 
 **DoD:** 3 eligible-артефакта → 3MF; SKETCH-артефакты пропущены с явным логом; тесты зелёные; таблица приведена.
 

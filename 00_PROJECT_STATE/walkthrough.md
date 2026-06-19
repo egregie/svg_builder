@@ -59,7 +59,7 @@ Successfully processed the remaining and new images after directory archiving:
 - `cat_4.jpg` -> `svg_cat_4.svg`
 - `cat_5.jpg` -> `svg_cat_5.svg`
 - `logo_pee.png` -> `svg_logo_pee.svg`
-- `svg_full_name_ym_proskin.png` -> `svg__full_name_ym_proskin.svg`
+- `svg_full_name_ym_proskin.png` -> `svg_full_name_ym_proskin.svg`
 
 ### Verification Results
 All 7 compiled SVGs successfully passed QA validation (0 failures) and are available in [05_output_svg/](file:///c:/svg_builder/05_output_svg/).
@@ -91,12 +91,12 @@ All 7 compiled SVGs successfully passed QA validation (0 failures) and are avail
 | svg_cat_4.svg | SKETCH_VECTOR | 0.9436 | false | release |
 | svg_cat_5.svg | SKETCH_VECTOR | 0.9447 | false | release |
 | svg_logo_pee.svg | STANDARD_VECTOR | 0.9905 | true | release |
-| svg__full_name_ym_proskin.svg | STANDARD_VECTOR | 0.9869 | true | release |
+| svg_full_name_ym_proskin.svg | STANDARD_VECTOR | 0.9869 | true | release |
 
 **Open questions**
 - Full manifold/geometry validator → next TZ (`compile_3mf.py`); here only the `3mf_eligible` flag.
 - ND-06 (passport versioning on re-deconstruction) — out of scope.
-- `svg__full_name_ym_proskin.svg` triple-prefix is a cosmetic naming artifact from the source filename, not a blocker.
+- `svg_full_name_ym_proskin.svg` triple-prefix is a cosmetic naming artifact from the source filename, not a blocker.
 
 ---
 
@@ -121,7 +121,7 @@ All 7 compiled SVGs successfully passed QA validation (0 failures) and are avail
 |---------|--------|--------|---------|------------|------------|--------|
 | COMP-022 | svg_cat_3.3mf | raster | [500, 331.95, 4] | 173508 | true | release |
 | COMP-028 | svg_logo_pee.3mf | vector | [500, 193.75, 4] | 284217 | true | release |
-| COMP-143 | svg__full_name_ym_proskin.3mf | raster | [500, 198.16, 4] | 358518 | true | release |
+| COMP-143 | svg_full_name_ym_proskin.3mf | raster | [500, 198.16, 4] | 358518 | true | release |
 | COMP-020/023/024/140 | (cat_1/4/5/2) | — | — | — | — | skip (SKETCH, not 3mf_eligible) |
 
 **Open questions**

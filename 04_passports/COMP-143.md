@@ -1,7 +1,7 @@
 # ТЕХНИЧЕСКИЙ ПАСПОРТ ОБЪЕКТА: COMP-143
 
 ## 1. МЕТАДАННЫЕ ИСХОДНИКА
-- **Файл:** svg_svg_full_name_ym_proskin.png
+- **Файл:** svg_full_name_ym_proskin.png
 - **Разрешение:** 1794x711 px
 - **Сложность сцены:** Высокая
 - **Провенанс:** Local disk / Test asset
