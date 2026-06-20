@@ -265,9 +265,12 @@ def validate_mesh(mesh, cfg):
         return False, {'reasons': ['empty mesh'], 'volume_mm3': 0.0,
                        'bbox_mm': [0, 0, 0], 'watertight': False,
                        'winding_consistent': False, 'within_bounds': False}
+    # Remove degenerate (zero-area) faces only. Do NOT merge_vertices: the
+    # manifold3d boolean output is already a clean watertight manifold, and
+    # welding nearby vertices can collapse thin features into non-manifold edges
+    # (this silently broke an already-watertight masson_logo_01 cutout).
     mesh.update_faces(mesh.nondegenerate_faces())
     mesh.remove_unreferenced_vertices()
-    mesh.merge_vertices()
 
     wt = bool(mesh.is_watertight)
     wc = bool(mesh.is_winding_consistent)
@@ -316,10 +319,22 @@ def set_3mf_unit(data, unit='millimeter'):
     return out.getvalue()
 
 
+def export_bytes(mesh, unit='millimeter'):
+    return set_3mf_unit(bytes(mesh.export(file_type='3mf')), unit)
+
+
+def reimport_watertight(data):
+    """DoD #4: the exported .3mf itself must reimport as a watertight mesh.
+    Some meshes are watertight in memory yet lose it through the 3MF roundtrip
+    (e.g. a pathological cutout boolean) — those must not be released."""
+    r = trimesh.load(io.BytesIO(data), file_type='3mf')
+    g = r.to_geometry() if hasattr(r, 'to_geometry') else r
+    return bool(g.is_watertight)
+
+
 def export_3mf(mesh, path, unit='millimeter'):
-    data = set_3mf_unit(bytes(mesh.export(file_type='3mf')), unit)
     with open(path, 'wb') as f:
-        f.write(data)
+        f.write(export_bytes(mesh, unit))
 
 
 def build_metadata(comp_id, source_svg, px, cfg, diag):
@@ -405,19 +420,24 @@ def process_one(comp_id, comp_data, cli_override):
         _quarantine(comp_id, stem, None, ["empty geometry after extraction"], start)
         return 'quarantine'
 
-    mesh = px = src = diag = None
+    mesh = px = src = diag = mesh_data = None
     last_reasons = ["no geometry source produced a valid manifold"]
     for cand_src, geom in cands:                            # vector, then raster
         try:
             m, p = build_mesh(geom, vw, vh, cfg)
-            o, dg = validate_mesh(m, cfg)                   # T3 guard rails
+            o, dg = validate_mesh(m, cfg)                   # T3 guard rails (in-memory)
         except Exception as e:
             last_reasons = [f"{cand_src} mesh build error: {e}"]
             continue
-        if o:
-            mesh, px, src, diag = m, p, cand_src, dg
-            break
-        last_reasons = [f"{cand_src}: {r}" for r in dg['reasons']]
+        if not o:
+            last_reasons = [f"{cand_src}: {r}" for r in dg['reasons']]
+            continue
+        data = export_bytes(m, cfg.get('output_units', 'millimeter'))
+        if not reimport_watertight(data):                  # DoD #4 (exported artifact)
+            last_reasons = [f"{cand_src}: exported 3MF not watertight on reimport"]
+            continue
+        mesh, px, src, diag, mesh_data = m, p, cand_src, dg, data
+        break
 
     if mesh is None:
         _quarantine(comp_id, stem, None, last_reasons, start)
@@ -432,7 +452,8 @@ def process_one(comp_id, comp_data, cli_override):
         return 'quarantine'
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    export_3mf(mesh, f"{OUT_DIR}/{stem}.3mf", cfg.get('output_units', 'millimeter'))
+    with open(f"{OUT_DIR}/{stem}.3mf", 'wb') as f:          # reuse the verified bytes
+        f.write(mesh_data)
     _write_sidecar(f"{OUT_DIR}/{stem}.3mf.json", meta)
     mirror_to_graph(comp_id, meta)
     log_trace(comp_id, "Success", (time.time() - start) * 1000, meta)
