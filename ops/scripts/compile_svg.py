@@ -293,6 +293,25 @@ def validate_monochrome(svg_content):
     return errors
 
 
+def source_too_low_detail(image_path):
+    """Suitability gate (the cat_3 class). A blurry / low-resolution / featureless
+    source has almost no edges (edge_frac ~ 0) and near-zero high-frequency detail
+    (lap_var ~ 0). A monochrome FILL of it is a meaningless blob and a SKETCH is
+    sparse noise — yet BOTH pass the SSIM gate (which measures fidelity to the
+    segmentation/line mask, not recognizability). So reject the SOURCE up front
+    rather than release garbage. Real graphics/photos always carry real edges, so
+    this only fires on degenerate inputs."""
+    import cv2
+    img = cv2.imread(image_path)
+    if img is None:
+        return False, {}
+    g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edge = float((cv2.Canny(g, 80, 200) > 0).mean())
+    lap = float(cv2.Laplacian(g, cv2.CV_64F).var())
+    return (edge < 0.005 and lap < 60.0), {'edge_frac': round(edge, 4),
+                                           'lap_var': round(lap, 1)}
+
+
 def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
     """A08 Monochrome Standard (TZ v3.1/3.2): dispatch by render_mode, then enforce
     black-only / transparent / pure-vector release standard. Output named per
@@ -310,6 +329,27 @@ def compile_object_svg_mono(passport_id, design_tokens, output_name=None):
     image_path = find_source_image(data['source_file'])
     if not image_path:
         raise FileNotFoundError(f"Source image not found for: {data['source_file']}")
+
+    # Suitability gate: reject blurry/featureless sources up front (the cat_3
+    # blob class) — neither fill nor sketch of them is meaningful, yet both pass
+    # the SSIM gate. No SVG is emitted; the artifact is recorded as quarantined.
+    low, sig = source_too_low_detail(image_path)
+    if low:
+        reason = (f"source too blurry/low-detail to vectorize meaningfully "
+                  f"(edge_frac={sig['edge_frac']}, lap_var={sig['lap_var']})")
+        # drop any stale released-artifact metadata so Stage 4 skips it cleanly
+        try:
+            data.pop('artifact_metadata', None)
+            data['compile_status'] = 'rejected_low_detail'
+            with open(index_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+        log_qa_failure(passport_id, [reason])
+        log_agent_trace(passport_id, "Failed", (time.time() - start_time) * 1000,
+                        reason, agent_id="A08")
+        print(f"[FAIL] {passport_id} -> quarantine (unsuitable source): {reason}")
+        return False
 
     render_mode = data.get('render_mode', 'STANDARD_VECTOR')
     detail = data.get('vector_detail_level', 'HIGH')

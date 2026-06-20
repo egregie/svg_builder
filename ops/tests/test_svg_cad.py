@@ -87,4 +87,19 @@ check("T3 gradient keeps >=1 path OR is flagged (never silent-empty)",
       non_empty or flagged)
 check("T3 gradient was rescued to non-empty foreground", r.get('n_paths', 0) >= 1)
 
+# ---- suitability gate: blurry/featureless source rejected (cat_3 class) ------
+import compile_svg as CS  # noqa: E402
+import numpy as _np  # noqa: E402
+from PIL import Image as _Image  # noqa: E402
+os.makedirs('ops/qa_previews', exist_ok=True)
+_blur = 'ops/qa_previews/_suit_blur.png'
+_Image.fromarray((_np.ones((200, 200, 3)) * 180).astype('uint8')).save(_blur)  # featureless
+_low, _ = CS.source_too_low_detail(_blur)
+check("suitability: featureless source rejected", _low is True)
+_sharp = 'ops/qa_previews/_suit_sharp.png'
+_a = _np.full((200, 200, 3), 255, 'uint8'); _a[60:140, 60:140] = 0       # crisp square
+_Image.fromarray(_a).save(_sharp)
+_lo2, _ = CS.source_too_low_detail(_sharp)
+check("suitability: crisp graphic NOT rejected", _lo2 is False)
+
 print(f"\nAll {PASS} svg_cad assertions passed.")
