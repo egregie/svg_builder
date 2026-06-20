@@ -93,27 +93,53 @@
     "px_to_mm": null
   },
   "mesh_artifact_metadata": {
-    "schema": "mesh_artifact_v1",
-    "comp_id": "COMP-155",
-    "source_svg_filename": "svg_soloma_02.svg",
-    "spec_version": "3.5",
-    "px_to_mm": 0.414594,
-    "extrusion_height_mm": 4.0,
-    "polarity": "cutout",
-    "base_plate": false,
-    "volume_mm3": 648458.236,
-    "bbox_mm": [
-      500.0,
-      346.6,
-      4.0
-    ],
-    "watertight": true,
-    "winding_consistent": true,
-    "max_printer_bounds_mm": [
-      550.0,
-      450.0,
-      450.0
-    ],
-    "within_bounds": true
+    "cutout": {
+      "schema": "mesh_artifact_v1",
+      "comp_id": "COMP-155",
+      "source_svg_filename": "svg_soloma_02.svg",
+      "spec_version": "3.5",
+      "px_to_mm": 0.414594,
+      "extrusion_height_mm": 4.0,
+      "polarity": "cutout",
+      "base_plate": false,
+      "volume_mm3": 648458.236,
+      "bbox_mm": [
+        500.0,
+        346.6,
+        4.0
+      ],
+      "watertight": true,
+      "winding_consistent": true,
+      "max_printer_bounds_mm": [
+        550.0,
+        450.0,
+        450.0
+      ],
+      "within_bounds": true
+    },
+    "raised": {
+      "schema": "mesh_artifact_v1",
+      "comp_id": "COMP-155",
+      "source_svg_filename": "svg_soloma_02.svg",
+      "spec_version": "3.5",
+      "px_to_mm": 0.414594,
+      "extrusion_height_mm": 4.0,
+      "polarity": "raised",
+      "base_plate": true,
+      "volume_mm3": 147126.977,
+      "bbox_mm": [
+        500.0,
+        346.6,
+        4.6
+      ],
+      "watertight": true,
+      "winding_consistent": true,
+      "max_printer_bounds_mm": [
+        550.0,
+        450.0,
+        450.0
+      ],
+      "within_bounds": true
+    }
   }
 }

@@ -1,17 +1,17 @@
 {
   "schema": "mesh_artifact_v1",
-  "comp_id": "COMP-151",
-  "source_svg_filename": "svg_logo_ym_proskin_006.svg",
+  "comp_id": "COMP-028",
+  "source_svg_filename": "svg_logo_pee.svg",
   "spec_version": "3.5",
-  "px_to_mm": 0.439122,
+  "px_to_mm": 0.625,
   "extrusion_height_mm": 4.0,
-  "polarity": "cutout",
-  "base_plate": false,
-  "volume_mm3": 604845.79,
+  "polarity": "raised",
+  "base_plate": true,
+  "volume_mm3": 100553.594,
   "bbox_mm": [
-    440.0,
-    407.505,
-    4.0
+    500.0,
+    193.75,
+    4.6
   ],
   "watertight": true,
   "winding_consistent": true,

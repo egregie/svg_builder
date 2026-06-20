@@ -1,16 +1,16 @@
 {
   "schema": "mesh_artifact_v1",
-  "comp_id": "COMP-150",
-  "source_svg_filename": "svg_logo_ym_proskin_005.svg",
+  "comp_id": "COMP-149",
+  "source_svg_filename": "svg_logo_ym_proskin_004.svg",
   "spec_version": "3.5",
-  "px_to_mm": 0.406504,
+  "px_to_mm": 0.444444,
   "extrusion_height_mm": 4.0,
   "polarity": "cutout",
   "base_plate": false,
-  "volume_mm3": 363407.648,
+  "volume_mm3": 741920.71,
   "bbox_mm": [
     500.0,
-    190.65,
+    385.333,
     4.0
   ],
   "watertight": true,

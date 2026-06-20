@@ -93,27 +93,53 @@
     "px_to_mm": null
   },
   "mesh_artifact_metadata": {
-    "schema": "mesh_artifact_v1",
-    "comp_id": "COMP-148",
-    "source_svg_filename": "svg_logo_ym_proskin_003.svg",
-    "spec_version": "3.5",
-    "px_to_mm": 0.290698,
-    "extrusion_height_mm": 4.0,
-    "polarity": "cutout",
-    "base_plate": false,
-    "volume_mm3": 435924.457,
-    "bbox_mm": [
-      500.0,
-      228.198,
-      4.0
-    ],
-    "watertight": true,
-    "winding_consistent": true,
-    "max_printer_bounds_mm": [
-      550.0,
-      450.0,
-      450.0
-    ],
-    "within_bounds": true
+    "cutout": {
+      "schema": "mesh_artifact_v1",
+      "comp_id": "COMP-148",
+      "source_svg_filename": "svg_logo_ym_proskin_003.svg",
+      "spec_version": "3.5",
+      "px_to_mm": 0.290698,
+      "extrusion_height_mm": 4.0,
+      "polarity": "cutout",
+      "base_plate": false,
+      "volume_mm3": 437310.559,
+      "bbox_mm": [
+        500.0,
+        228.198,
+        4.0
+      ],
+      "watertight": true,
+      "winding_consistent": true,
+      "max_printer_bounds_mm": [
+        550.0,
+        450.0,
+        450.0
+      ],
+      "within_bounds": true
+    },
+    "raised": {
+      "schema": "mesh_artifact_v1",
+      "comp_id": "COMP-148",
+      "source_svg_filename": "svg_logo_ym_proskin_003.svg",
+      "spec_version": "3.5",
+      "px_to_mm": 0.290698,
+      "extrusion_height_mm": 4.0,
+      "polarity": "raised",
+      "base_plate": true,
+      "volume_mm3": 88930.204,
+      "bbox_mm": [
+        500.0,
+        228.198,
+        4.6
+      ],
+      "watertight": true,
+      "winding_consistent": true,
+      "max_printer_bounds_mm": [
+        550.0,
+        450.0,
+        450.0
+      ],
+      "within_bounds": true
+    }
   }
 }

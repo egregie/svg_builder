@@ -220,8 +220,13 @@ def _extrude_geom(geom, height):
     return meshes[0] if len(meshes) == 1 else trimesh.boolean.union(meshes)
 
 
-def build_mesh(geom, vw, vh, cfg):
-    """Scale to mm, Y-flip, extrude per polarity. Returns (mesh, px_to_mm)."""
+def build_mesh(geom, vw, vh, cfg, erode_mm=0.0):
+    """Scale to mm, Y-flip, extrude per polarity. Returns (mesh, px_to_mm).
+
+    erode_mm shrinks the black shapes before a CUTOUT — thin walls between close
+    holes otherwise collapse through the export roundtrip into a non-watertight
+    stencil (masson_logo_01). A sub-mm erosion thickens the walls; only used as a
+    fallback when the un-eroded cutout fails the reimport gate."""
     px = cfg['target_long_side_mm'] / max(vw, vh)
     h_mm = vh * px
     mgeom = affine_transform(geom, [px, 0, 0, -px, 0, h_mm])   # mm + Y-flip
@@ -232,6 +237,10 @@ def build_mesh(geom, vw, vh, cfg):
     mgeom = _clean_min_feature(mgeom, cfg['min_feature_mm'] ** 2)
     if mgeom is None:
         return None, px
+    if erode_mm > 0:
+        mgeom = _only_polygons(make_valid(mgeom.buffer(-erode_mm).buffer(0)))
+        if mgeom is None:
+            return None, px
 
     height = cfg['extrusion_height_mm']
     if cfg['polarity'] == 'cutout':
@@ -401,65 +410,85 @@ def find_svg(svg_name):
     return None
 
 
+def _attempt(cands, vw, vh, cfg, polarity, start):
+    """Build + validate + reimport-check one polarity. cutout retries with shape
+    erosion (thin-wall fix). Returns (verified_bytes, px, src, diag, None) on
+    success, else (None, None, None, None, reasons)."""
+    erodes = [0.0, 0.3, 0.6] if polarity == 'cutout' else [0.0]
+    reasons = ["no geometry source produced a valid manifold"]
+    for cand_src, geom in cands:
+        for ero in erodes:
+            try:
+                m, p = build_mesh(geom, vw, vh, cfg, erode_mm=ero)
+                o, dg = validate_mesh(m, cfg)               # T3 guard rails (in-memory)
+            except Exception as e:
+                reasons = [f"{cand_src} erode={ero}: {e}"]
+                continue
+            if not o:
+                reasons = [f"{cand_src} erode={ero}: {dg['reasons']}"]
+                continue
+            data = export_bytes(m, cfg.get('output_units', 'millimeter'))
+            if not reimport_watertight(data):               # DoD #4 (exported artifact)
+                reasons = [f"{cand_src} erode={ero}: 3MF not watertight on reimport"]
+                continue
+            return data, p, cand_src, dg, None
+    return None, None, None, None, reasons
+
+
 def process_one(comp_id, comp_data, cli_override):
+    """Emit BOTH a cutout STENCIL and a raised RELIEF for the eligible artifact
+    (owner requirement: 'и трафарет, и рельеф'). Each variant is validated and
+    released independently; a variant that cannot be made watertight quarantines
+    on its own without blocking the other."""
     start = time.time()
     am = comp_data.get('artifact_metadata', {})
     svg_name = am.get('output_filename') or comp_data.get('output_filename')
     stem = os.path.splitext(svg_name)[0] if svg_name else comp_id
-    cfg = pipeline_config.three_mf_config(comp_data.get('three_mf_override'), cli_override)
+    base_cfg = pipeline_config.three_mf_config(comp_data.get('three_mf_override'),
+                                               cli_override)
 
     svg_path = find_svg(svg_name) if svg_name else None
     if not svg_path:
         _quarantine(comp_id, stem, None, [f"source SVG not found: {svg_name}"], start)
-        return 'quarantine'
+        return {'cutout': 'quarantine', 'raised': 'quarantine'}
     with open(svg_path, encoding='utf-8') as f:
         svg = f.read()
-
     vw, vh, cands = geometry_candidates(svg)
     if not cands:                                           # T1 empty invariant
         _quarantine(comp_id, stem, None, ["empty geometry after extraction"], start)
-        return 'quarantine'
-
-    mesh = px = src = diag = mesh_data = None
-    last_reasons = ["no geometry source produced a valid manifold"]
-    for cand_src, geom in cands:                            # vector, then raster
-        try:
-            m, p = build_mesh(geom, vw, vh, cfg)
-            o, dg = validate_mesh(m, cfg)                   # T3 guard rails (in-memory)
-        except Exception as e:
-            last_reasons = [f"{cand_src} mesh build error: {e}"]
-            continue
-        if not o:
-            last_reasons = [f"{cand_src}: {r}" for r in dg['reasons']]
-            continue
-        data = export_bytes(m, cfg.get('output_units', 'millimeter'))
-        if not reimport_watertight(data):                  # DoD #4 (exported artifact)
-            last_reasons = [f"{cand_src}: exported 3MF not watertight on reimport"]
-            continue
-        mesh, px, src, diag, mesh_data = m, p, cand_src, dg, data
-        break
-
-    if mesh is None:
-        _quarantine(comp_id, stem, None, last_reasons, start)
-        print(f"[FAIL] {comp_id} -> quarantine: {last_reasons}")
-        return 'quarantine'
-
-    meta = build_metadata(comp_id, svg_name, px, cfg, diag)
-    schema_errs = validate_metadata(meta)                  # T4 contract
-    if schema_errs:
-        _quarantine(comp_id, stem, mesh, [f"metadata schema: {schema_errs}"], start, meta)
-        print(f"[FAIL] {comp_id} ({src}) -> quarantine: schema {schema_errs}")
-        return 'quarantine'
+        return {'cutout': 'quarantine', 'raised': 'quarantine'}
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    with open(f"{OUT_DIR}/{stem}.3mf", 'wb') as f:          # reuse the verified bytes
-        f.write(mesh_data)
-    _write_sidecar(f"{OUT_DIR}/{stem}.3mf.json", meta)
-    mirror_to_graph(comp_id, meta)
-    log_trace(comp_id, "Success", (time.time() - start) * 1000, meta)
-    print(f"[OK] {comp_id} ({src}) [{cfg['polarity']}] -> {OUT_DIR}/{stem}.3mf  "
-          f"bbox_mm={diag['bbox_mm']} vol={diag['volume_mm3']:.0f} watertight={diag['watertight']}")
-    return 'release'
+    graph_meta, outcome = {}, {}
+    for polarity in ('cutout', 'raised'):
+        cfg = dict(base_cfg)
+        cfg['polarity'] = polarity
+        if polarity == 'raised':
+            cfg['base_plate'] = True                        # relief = design on a backing
+        vstem = f"{stem}_{polarity}"
+        data, px, src, diag, reasons = _attempt(cands, vw, vh, cfg, polarity, start)
+        if data is None:
+            _quarantine(comp_id, vstem, None, reasons, start)
+            print(f"[FAIL] {comp_id} [{polarity}] -> quarantine: {reasons}")
+            outcome[polarity] = 'quarantine'
+            continue
+        meta = build_metadata(comp_id, svg_name, px, cfg, diag)
+        schema_errs = validate_metadata(meta)               # T4 contract
+        if schema_errs:
+            _quarantine(comp_id, vstem, None, [f"metadata schema: {schema_errs}"], start, meta)
+            outcome[polarity] = 'quarantine'
+            continue
+        with open(f"{OUT_DIR}/{vstem}.3mf", 'wb') as f:     # reuse the verified bytes
+            f.write(data)
+        _write_sidecar(f"{OUT_DIR}/{vstem}.3mf.json", meta)
+        log_trace(comp_id, "Success", (time.time() - start) * 1000, meta)
+        graph_meta[polarity] = meta
+        outcome[polarity] = 'release'
+        print(f"[OK] {comp_id} ({src}) [{polarity}] -> {OUT_DIR}/{vstem}.3mf  "
+              f"bbox_mm={diag['bbox_mm']} vol={diag['volume_mm3']:.0f}")
+    if graph_meta:
+        mirror_to_graph(comp_id, graph_meta)
+    return outcome
 
 
 def _write_sidecar(path, meta):
@@ -519,12 +548,13 @@ def main():
             print(f"[SKIP] Object {cid} not eligible for 3D extrusion")
             skipped += 1
             continue
-        res = process_one(cid, data, cli_override)
-        released += res == 'release'
-        quarantined += res == 'quarantine'
+        res = process_one(cid, data, cli_override)          # {polarity: status}
+        released += sum(1 for v in res.values() if v == 'release')
+        quarantined += sum(1 for v in res.values() if v == 'quarantine')
 
-    print(f"\n--- Stage 4 Summary ---\nReleased: {released}  "
-          f"Quarantined: {quarantined}  Skipped (not eligible): {skipped}")
+    print(f"\n--- Stage 4 Summary (cutout + raised per object) ---\n"
+          f"Released variants: {released}  Quarantined: {quarantined}  "
+          f"Skipped objects (not eligible): {skipped}")
 
 
 if __name__ == '__main__':
