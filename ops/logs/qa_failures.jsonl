@@ -226,3 +226,5 @@
 {"timestamp": "2026-06-19T02:40:54.315660Z", "passport_id": "COMP-142", "errors": ["Compilation error: Source image not found for: svg_full_name_ym_proskin.png"]}
 {"timestamp": "2026-06-19T02:40:54.316637Z", "passport_id": "COMP-141", "errors": ["Compilation error: Source image not found for: svg_full_name_ym_proskin_black.png"]}
 {"timestamp": "2026-06-19T23:30:31.006100Z", "passport_id": "COMP-143", "errors": ["Compilation error: Source image not found for: svg_full_name_ym_proskin.png"]}
+{"timestamp": "2026-06-20T00:48:41.568113Z", "passport_id": "COMP-022", "errors": ["source too blurry/low-detail to vectorize meaningfully (edge_frac=0.0015, lap_var=18.9)"]}
+{"timestamp": "2026-06-20T00:50:01.856874Z", "passport_id": "COMP-022", "errors": ["source too blurry/low-detail to vectorize meaningfully (edge_frac=0.0015, lap_var=18.9)"]}

@@ -72,7 +72,7 @@
     "gate_results": {
       "visual": {
         "axis": "ssim",
-        "value": 0.9892,
+        "value": 0.989,
         "threshold": 0.93,
         "passed": true
       },
@@ -101,7 +101,7 @@
     "extrusion_height_mm": 4.0,
     "polarity": "cutout",
     "base_plate": false,
-    "volume_mm3": 648445.062,
+    "volume_mm3": 648458.236,
     "bbox_mm": [
       500.0,
       346.6,
