@@ -91,55 +91,5 @@
     "viewbox": "0 0 800 310",
     "units": "px",
     "px_to_mm": null
-  },
-  "mesh_artifact_metadata": {
-    "cutout": {
-      "schema": "mesh_artifact_v1",
-      "comp_id": "COMP-028",
-      "source_svg_filename": "svg_logo_pee.svg",
-      "spec_version": "3.5",
-      "px_to_mm": 0.625,
-      "extrusion_height_mm": 4.0,
-      "polarity": "cutout",
-      "base_plate": false,
-      "volume_mm3": 345071.407,
-      "bbox_mm": [
-        500.0,
-        193.75,
-        4.0
-      ],
-      "watertight": true,
-      "winding_consistent": true,
-      "max_printer_bounds_mm": [
-        550.0,
-        450.0,
-        450.0
-      ],
-      "within_bounds": true
-    },
-    "raised": {
-      "schema": "mesh_artifact_v1",
-      "comp_id": "COMP-028",
-      "source_svg_filename": "svg_logo_pee.svg",
-      "spec_version": "3.5",
-      "px_to_mm": 0.625,
-      "extrusion_height_mm": 4.0,
-      "polarity": "raised",
-      "base_plate": true,
-      "volume_mm3": 100553.594,
-      "bbox_mm": [
-        500.0,
-        193.75,
-        4.6
-      ],
-      "watertight": true,
-      "winding_consistent": true,
-      "max_printer_bounds_mm": [
-        550.0,
-        450.0,
-        450.0
-      ],
-      "within_bounds": true
-    }
   }
 }

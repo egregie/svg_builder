@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Rename surviving photos to photo_NNN.jpg (CR v3.4 §2).
+"""Rename surviving images to <prefix>_NNN.<ext> (CR v3.4 §2).
 
-Order = natural by the original numeric id parsed from 'photo_<N>@...'.
-New name = 'photo_' + f'{i:03d}' + '.jpg', i starting at 1.
+Order = natural by the numeric id parsed from '<prefix>_<N>...'; if no such id
+(arbitrary names like IMG_8198), natural sort by filename. The ORIGINAL
+extension is preserved (lowercased; .jpeg -> .jpg) so PNG/WEBP stay intact.
 Two-pass (temp -> final) so no rename collides with an existing source name.
 
-Usage: python ops/scripts/rename_photos.py <folder> [--apply]
+Usage: python ops/scripts/rename_photos.py <folder> [--prefix phone] [--apply]
 """
 import os
 import re
@@ -21,17 +22,22 @@ def main():
         sys.exit(1)
     folder = sys.argv[1]
     apply = '--apply' in sys.argv
+    prefix = sys.argv[sys.argv.index('--prefix') + 1] if '--prefix' in sys.argv else 'photo'
 
     files = [f for f in os.listdir(folder)
              if f.lower().endswith(EXTS) and os.path.isfile(os.path.join(folder, f))]
 
-    def orig_id(name):
-        m = re.search(r'photo_(\d+)', name)
-        return int(m.group(1)) if m else 10 ** 9
+    def nat_key(name):
+        return [int(t) if t.isdigit() else t.lower()
+                for t in re.split(r'(\d+)', name)]
 
-    files.sort(key=lambda n: (orig_id(n), n.lower()))
+    files.sort(key=nat_key)
 
-    plan = [(old, f"photo_{i:03d}.jpg") for i, old in enumerate(files, 1)]
+    def ext_of(name):
+        e = os.path.splitext(name)[1].lower()
+        return '.jpg' if e == '.jpeg' else e
+
+    plan = [(old, f"{prefix}_{i:03d}{ext_of(old)}") for i, old in enumerate(files, 1)]
 
     for old, new in plan:
         print(f"  {old:50s} -> {new}")
@@ -54,7 +60,7 @@ def main():
         tmp.append((t, new))
     for t, new in tmp:
         os.rename(os.path.join(folder, t), os.path.join(folder, new))
-    print(f"\n[APPLIED] Renamed {len(plan)} file(s) to photo_NNN.jpg.")
+    print(f"\n[APPLIED] Renamed {len(plan)} file(s) to {prefix}_NNN.<ext>.")
 
 
 if __name__ == '__main__':

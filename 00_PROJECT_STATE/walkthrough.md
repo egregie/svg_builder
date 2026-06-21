@@ -128,4 +128,26 @@ All 7 compiled SVGs successfully passed QA validation (0 failures) and are avail
 - SKETCH (line-art) -> 3D (tube/engrave) remains a future mode.
 - Vector parsing is precise but fragile on complex logos; raster fallback is the reliable backstop (lesson logged).
 
+---
+
+## input/phone batch 2026-06-20: 102 iPhone screenshots/photos/memes -> SVG
+
+**Status:** COMPLETED on `dev` (svg_cad/compile_3mf already merged into master+dev).
+
+**Pipeline**
+- **Format fix:** installed `pillow-heif`; converted 20 `.HEIC` -> `.jpg` (PIL/cv2 + the deconstruct extension filter can't read HEIC). WEBP read natively by PIL — kept.
+- **Dedup:** 1 near-duplicate removed (perceptual hash) -> 102 survivors.
+- **Rename:** `phone_001..phone_102`, ORIGINAL extension preserved (69 jpg / 30 png / 3 webp). `rename_photos.py` generalized with `--prefix` + ext preservation + natural sort.
+- **De-chrome (A00):** 18 art-on-white screenshots cropped (UI bands trimmed, originals backed up to `input/phone/_precrop_originals/`), 83 clean, 1 skip.
+- **Pipeline:** deconstruct (recursive) -> validate -> compile.
+
+**Verification**
+- 118 classified, 0 failures. Phone classes: 56 LOGO, 28 HUMAN_PHOTO, 11 ILLUSTRATION, 7 OBJECT_PHOTO.
+- Compile: 122 objects -> **120 released, 2 quarantined**. The 2 are blurry phone photos (`edge_frac≈0.004`) correctly rejected by the suitability gate.
+- Phone: **100/102 released** (58 STANDARD, 42 SKETCH).
+- `validate.py --artifacts` -> 120/120 contract-conformant; no empty SVGs.
+
+**Open questions**
+- Phone STANDARD logos not yet meshed to 3MF (only requested SVG render).
+
 
