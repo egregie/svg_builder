@@ -1,0 +1,24 @@
+{
+  "schema": "mesh_artifact_v1",
+  "comp_id": "COMP-260",
+  "source_svg_filename": "svg_kolia_01.svg",
+  "spec_version": "3.5",
+  "px_to_mm": 0.486855,
+  "extrusion_height_mm": 4.0,
+  "polarity": "raised",
+  "base_plate": true,
+  "volume_mm3": 221420.752,
+  "bbox_mm": [
+    500.0,
+    437.683,
+    4.6
+  ],
+  "watertight": true,
+  "winding_consistent": true,
+  "max_printer_bounds_mm": [
+    550.0,
+    450.0,
+    450.0
+  ],
+  "within_bounds": true
+}

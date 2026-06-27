@@ -414,7 +414,7 @@ def _attempt(cands, vw, vh, cfg, polarity, start):
     """Build + validate + reimport-check one polarity. cutout retries with shape
     erosion (thin-wall fix). Returns (verified_bytes, px, src, diag, None) on
     success, else (None, None, None, None, reasons)."""
-    erodes = [0.0, 0.3, 0.6] if polarity == 'cutout' else [0.0]
+    erodes = [0.0, 0.3, 0.6] if polarity == 'cutout' else [0.0, 0.05, 0.1]
     reasons = ["no geometry source produced a valid manifold"]
     for cand_src, geom in cands:
         for ero in erodes:
