@@ -57,39 +57,5 @@
     "export_path": "/05_output_svg/res_comp_150.svg",
     "entity_id": "logo_primitive_150",
     "source_ref": "SRC-0170"
-  },
-  "source_filename": "logo_ym_proskin_005.png",
-  "output_filename": "svg_logo_ym_proskin_005.svg",
-  "artifact_metadata": {
-    "schema": "svg_artifact_v1",
-    "comp_id": "COMP-150",
-    "spec_version": "3.5",
-    "engine": "deterministic_vtracer",
-    "render_mode": "STANDARD_VECTOR",
-    "fallback_from": null,
-    "source_filename": "logo_ym_proskin_005.png",
-    "output_filename": "svg_logo_ym_proskin_005.svg",
-    "gate_results": {
-      "visual": {
-        "axis": "ssim",
-        "value": 0.9887,
-        "threshold": 0.93,
-        "passed": true
-      },
-      "color": {
-        "axis": "monochrome",
-        "passed": true,
-        "violations": []
-      },
-      "topological": {
-        "axis": "closed_paths_no_raster",
-        "passed": true,
-        "violations": []
-      }
-    },
-    "3mf_eligible": true,
-    "viewbox": "0 0 1230 469",
-    "units": "px",
-    "px_to_mm": null
   }
 }

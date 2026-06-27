@@ -65,39 +65,5 @@
     "export_path": "/05_output_svg/res_comp_160.svg",
     "entity_id": "logo_primitive_160",
     "source_ref": "SRC-0180"
-  },
-  "source_filename": "phone_003.jpg",
-  "output_filename": "svg_phone_003.svg",
-  "artifact_metadata": {
-    "schema": "svg_artifact_v1",
-    "comp_id": "COMP-160",
-    "spec_version": "3.5",
-    "engine": "deterministic_vtracer",
-    "render_mode": "SKETCH_VECTOR",
-    "fallback_from": null,
-    "source_filename": "phone_003.jpg",
-    "output_filename": "svg_phone_003.svg",
-    "gate_results": {
-      "visual": {
-        "axis": "ssim",
-        "value": 0.8988,
-        "threshold": 0.75,
-        "passed": true
-      },
-      "color": {
-        "axis": "monochrome",
-        "passed": true,
-        "violations": []
-      },
-      "topological": {
-        "axis": "closed_paths_no_raster",
-        "passed": true,
-        "violations": []
-      }
-    },
-    "3mf_eligible": false,
-    "viewbox": "0 0 4032 3024",
-    "units": "px",
-    "px_to_mm": null
   }
 }

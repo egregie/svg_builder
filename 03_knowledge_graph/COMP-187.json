@@ -57,39 +57,5 @@
     "export_path": "/05_output_svg/res_comp_187.svg",
     "entity_id": "logo_primitive_187",
     "source_ref": "SRC-0207"
-  },
-  "source_filename": "phone_030.webp",
-  "output_filename": "svg_phone_030.svg",
-  "artifact_metadata": {
-    "schema": "svg_artifact_v1",
-    "comp_id": "COMP-187",
-    "spec_version": "3.5",
-    "engine": "deterministic_vtracer",
-    "render_mode": "STANDARD_VECTOR",
-    "fallback_from": null,
-    "source_filename": "phone_030.webp",
-    "output_filename": "svg_phone_030.svg",
-    "gate_results": {
-      "visual": {
-        "axis": "ssim",
-        "value": 0.9952,
-        "threshold": 0.93,
-        "passed": true
-      },
-      "color": {
-        "axis": "monochrome",
-        "passed": true,
-        "violations": []
-      },
-      "topological": {
-        "axis": "closed_paths_no_raster",
-        "passed": true,
-        "violations": []
-      }
-    },
-    "3mf_eligible": true,
-    "viewbox": "0 0 1523 2200",
-    "units": "px",
-    "px_to_mm": null
   }
 }
